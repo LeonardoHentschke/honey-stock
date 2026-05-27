@@ -8,7 +8,7 @@ import {
 import { Plus, Search, Package } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/ui/button';
+import { Button, ButtonText } from '@/components/ui/button';
 
 /**
  * Tela de lista de produtos.
@@ -47,12 +47,10 @@ export function ProductListScreen() {
         <Text style={styles.emptyBody}>
           Adicione seus primeiros produtos para começar a registrar vendas.
         </Text>
-        <Button
-          label="Adicionar produto"
-          variant="secondary"
-          className="mt-6"
-          leftIcon={<Plus size={18} color="#9B5F0B" />}
-        />
+        <Button variant="secondary" className="mt-6">
+          <Plus size={18} color="#9B5F0B" />
+          <ButtonText>Adicionar produto</ButtonText>
+        </Button>
       </View>
     </View>
   );

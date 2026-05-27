@@ -8,6 +8,7 @@ import {
   type SignUpMemberFormValues,
 } from '../models/authSchemas';
 import * as authService from '../models/authService';
+import { reloadProfile } from '@/shared/hooks/useAuth';
 
 export type SignUpTab = 'owner' | 'member';
 
@@ -29,7 +30,16 @@ export function useSignUpViewModel(initialTab: SignUpTab = 'owner') {
   const onSubmitOwner = ownerForm.handleSubmit(async (data) => {
     setIsLoading(true);
     try {
-      await authService.signUpOwner(data.email, data.password, data.fullName, data.companyName);
+      const userId = await authService.signUpOwner(
+        data.email,
+        data.password,
+        data.fullName,
+        data.companyName,
+      );
+      // Recarrega o perfil após todos os inserts (empresa + perfil).
+      // Necessário pois o onAuthStateChange pode ter disparado antes dos
+      // inserts terminarem, deixando profile=null no store.
+      await reloadProfile(userId);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar conta.';
       ownerForm.setError('root', { message });
@@ -41,12 +51,13 @@ export function useSignUpViewModel(initialTab: SignUpTab = 'owner') {
   const onSubmitMember = memberForm.handleSubmit(async (data) => {
     setIsLoading(true);
     try {
-      await authService.signUpMember(
+      const userId = await authService.signUpMember(
         data.email,
         data.password,
         data.fullName,
         data.inviteCode,
       );
+      await reloadProfile(userId);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao entrar na empresa.';
       memberForm.setError('root', { message });

@@ -1,7 +1,12 @@
 import * as React from 'react';
-import { Pressable, Text } from 'react-native';
+import { ActivityIndicator, Pressable, Text } from 'react-native';
 import { cva, type VariantProps } from 'class-variance-authority';
+import * as Slot from '@rn-primitives/slot';
+import type { SlottablePressableProps, PressableRef } from '@rn-primitives/types';
 import { cn } from '@/shared/lib/utils';
+
+// Contexto que propaga a classe de texto para filhos <ButtonText>
+const TextClassContext = React.createContext<string | undefined>(undefined);
 
 const buttonVariants = cva(
   'flex-row items-center justify-center rounded-md active:opacity-80',
@@ -12,12 +17,12 @@ const buttonVariants = cva(
         secondary:   'bg-honey-100',
         ghost:       'bg-transparent',
         destructive: 'bg-danger',
-        outline:     'bg-transparent border border-ink-100',
+        outline:     'border border-ink-100 bg-transparent',
       },
       size: {
-        sm: 'h-9 px-3',
-        md: 'h-11 px-4',
-        lg: 'h-13 px-6',
+        sm: 'h-9 px-3 gap-1',
+        md: 'h-11 px-4 gap-2',
+        lg: 'h-13 px-6 gap-2',
       },
     },
     defaultVariants: {
@@ -40,43 +45,61 @@ const buttonTextVariants = cva('font-semibold text-body-strong', {
   defaultVariants: { variant: 'default' },
 });
 
-interface ButtonProps
-  extends React.ComponentProps<typeof Pressable>,
-    VariantProps<typeof buttonVariants> {
-  label: string;
-  /** Ícone exibido à esquerda do texto */
-  leftIcon?: React.ReactNode;
-  /** Ícone exibido à direita do texto */
-  rightIcon?: React.ReactNode;
-  loading?: boolean;
-  fullWidth?: boolean;
-}
+// Cor do spinner mapeada por variant (ActivityIndicator não aceita NativeWind)
+const spinnerColor: Record<string, string> = {
+  default:     '#FFFFFF',
+  secondary:   '#B8740C',
+  ghost:       '#C47C0A',
+  destructive: '#FFFFFF',
+  outline:     '#1F1B16',
+};
 
-const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>(
-  ({ label, variant, size, loading, fullWidth, leftIcon, rightIcon, className, disabled, ...props }, ref) => {
+type ButtonProps = SlottablePressableProps &
+  VariantProps<typeof buttonVariants> & {
+    /** Exibe spinner e desabilita o botão enquanto verdadeiro */
+    loading?: boolean;
+  };
+
+const Button = React.forwardRef<PressableRef, ButtonProps>(
+  ({ className, variant, size, asChild = false, disabled, loading, children, ...props }, ref) => {
+    const Component = asChild ? Slot.Pressable : Pressable;
+    const isDisabled = disabled || loading;
     return (
-      <Pressable
-        ref={ref}
-        className={cn(
-          buttonVariants({ variant, size }),
-          fullWidth && 'w-full',
-          (disabled || loading) && 'opacity-50',
-          className
-        )}
-        disabled={disabled || loading}
-        {...props}
-      >
-        {leftIcon && !loading ? <>{leftIcon}<Text> </Text></> : null}
-        <Text className={cn(buttonTextVariants({ variant }))}>
-          {loading ? 'Aguarde...' : label}
-        </Text>
-        {rightIcon && !loading ? <><Text> </Text>{rightIcon}</> : null}
-      </Pressable>
+      <TextClassContext.Provider value={buttonTextVariants({ variant })}>
+        <Component
+          ref={ref}
+          className={cn(
+            buttonVariants({ variant, size }),
+            isDisabled && 'opacity-50',
+            className,
+          )}
+          disabled={isDisabled}
+          {...props}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={spinnerColor[variant ?? 'default']} />
+          ) : (
+            children
+          )}
+        </Component>
+      </TextClassContext.Provider>
     );
   }
 );
-
 Button.displayName = 'Button';
 
-export { Button, buttonVariants };
+/**
+ * Texto do botão — herda automaticamente a cor do variant do <Button> pai.
+ * Use sempre dentro de um <Button>.
+ */
+const ButtonText = React.forwardRef<
+  React.ElementRef<typeof Text>,
+  React.ComponentPropsWithoutRef<typeof Text>
+>(({ className, ...props }, ref) => {
+  const textClass = React.useContext(TextClassContext);
+  return <Text ref={ref} className={cn(textClass, className)} {...props} />;
+});
+ButtonText.displayName = 'ButtonText';
+
+export { Button, ButtonText, buttonVariants, buttonTextVariants, TextClassContext };
 export type { ButtonProps };

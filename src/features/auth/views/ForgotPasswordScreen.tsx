@@ -11,7 +11,7 @@ import { Controller } from 'react-hook-form';
 import { CheckCircle2, ArrowLeft } from 'lucide-react-native';
 
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonText } from '@/components/ui/button';
 import { useForgotPasswordViewModel } from '../viewmodels/useForgotPasswordViewModel';
 import type { AuthStackScreenProps } from '@/navigation/types';
 
@@ -51,13 +51,13 @@ export function ForgotPasswordScreen({ navigation }: AuthStackScreenProps<'Forgo
               Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.
             </Text>
             <Button
-              label="Voltar ao login"
               variant="secondary"
               size="lg"
-              fullWidth
+              className="w-full mt-4"
               onPress={() => navigation.navigate('Login')}
-              className="mt-4"
-            />
+            >
+              <ButtonText>Voltar ao login</ButtonText>
+            </Button>
           </View>
         ) : (
           /* ── Formulário ── */
@@ -94,13 +94,13 @@ export function ForgotPasswordScreen({ navigation }: AuthStackScreenProps<'Forgo
             ) : null}
 
             <Button
-              label="Enviar link"
               size="lg"
-              fullWidth
+              className="w-full mt-2"
               loading={isLoading}
               onPress={onSubmit}
-              className="mt-2"
-            />
+            >
+              <ButtonText>Enviar link</ButtonText>
+            </Button>
           </View>
         )}
       </ScrollView>

@@ -63,3 +63,22 @@ export function useAuth() {
     }))
   );
 }
+
+/**
+ * Recarrega o perfil do usuário no store a partir do banco.
+ *
+ * Use após criação de conta para garantir que o perfil esteja disponível
+ * mesmo quando o onAuthStateChange disparou antes dos inserts terminarem
+ * (race condition do signUp quando confirmação de e-mail está desabilitada).
+ */
+export async function reloadProfile(userId: string): Promise<void> {
+  const { setProfile, setLoading } = useAuthStore.getState();
+  setLoading(true);
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  setProfile(profile ?? null);
+  setLoading(false);
+}

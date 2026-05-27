@@ -11,7 +11,7 @@ import { Controller } from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react-native';
 
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonText } from '@/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import { useSignUpViewModel, type SignUpTab } from '../viewmodels/useSignUpViewModel';
 import type { AuthStackScreenProps } from '@/navigation/types';
@@ -155,13 +155,13 @@ export function SignUpScreen({ navigation, route }: AuthStackScreenProps<'SignUp
             ) : null}
 
             <Button
-              label="Criar conta"
               size="lg"
-              fullWidth
+              className="w-full mt-2"
               loading={isLoading}
               onPress={onSubmitOwner}
-              className="mt-2"
-            />
+            >
+              <ButtonText>Criar conta</ButtonText>
+            </Button>
           </View>
         )}
 
@@ -264,13 +264,13 @@ export function SignUpScreen({ navigation, route }: AuthStackScreenProps<'SignUp
             ) : null}
 
             <Button
-              label="Entrar na empresa"
               size="lg"
-              fullWidth
+              className="w-full mt-2"
               loading={isLoading}
               onPress={onSubmitMember}
-              className="mt-2"
-            />
+            >
+              <ButtonText>Entrar na empresa</ButtonText>
+            </Button>
           </View>
         )}
 

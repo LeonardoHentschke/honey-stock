@@ -14,7 +14,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Eye, EyeOff } from 'lucide-react-native';
 
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonText } from '@/components/ui/button';
 import { HoneyLogo } from '@/components/ui/honey-logo';
 import { HexPattern } from '@/components/ui/hex-pattern';
 import { useLoginViewModel } from '../viewmodels/useLoginViewModel';
@@ -119,23 +119,20 @@ export function LoginScreen({ navigation }: AuthStackScreenProps<'Login'>) {
             ) : null}
 
             {/* Entrar */}
-            <Button
-              label="Entrar"
-              size="lg"
-              fullWidth
-              loading={isLoading}
-              onPress={onSubmit}
-            />
+            <Button size="lg" className="w-full" loading={isLoading} onPress={onSubmit}>
+              <ButtonText>Entrar</ButtonText>
+            </Button>
 
             {/* Google */}
             <Button
-              label="Continuar com Google"
               variant="outline"
               size="lg"
-              fullWidth
+              className="w-full"
               loading={googleLoading}
               onPress={onGoogleSignIn}
-            />
+            >
+              <ButtonText>Continuar com Google</ButtonText>
+            </Button>
 
             {/* Esqueci senha */}
             <Pressable

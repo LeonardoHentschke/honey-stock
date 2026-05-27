@@ -44,17 +44,20 @@ export async function signIn(email: string, password: string): Promise<void> {
  * Cria uma nova conta de dono de empresa.
  * Fluxo: auth.signUp → insert company → insert profile.
  *
- * ⚠️  Requer "Confirm email" DESABILITADO no Supabase (ou o usuário não terá
- *     sessão para executar os inserts). Em produção, usar um Edge Function
- *     com service_role para criação de empresa + perfil.
+ * ⚠️  Requer "Confirm email" DESABILITADO no Supabase Dashboard
+ *     (Authentication → Email → desmarcar "Enable email confirmations").
+ *     Em produção, usar um Edge Function com service_role para criação
+ *     de empresa + perfil.
+ *
+ * @returns userId — para o caller recarregar o perfil no store após os inserts.
  */
 export async function signUpOwner(
   email: string,
   password: string,
   fullName: string,
   companyName: string,
-): Promise<void> {
-  // 1. Criar usuário
+): Promise<string> {
+  // 1. Criar usuário (sessão retornada imediatamente quando confirmação desabilitada)
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -64,9 +67,7 @@ export async function signUpOwner(
 
   const userId = authData.user?.id;
   if (!userId) {
-    throw new ServiceError(
-      'Conta criada — verifique seu e-mail para confirmar antes de entrar.',
-    );
+    throw new ServiceError('Erro ao criar usuário. Tente novamente.');
   }
 
   // 2. Criar empresa
@@ -96,16 +97,21 @@ export async function signUpOwner(
       profileError,
     );
   }
+
+  return userId;
 }
 
 // ─── signUpMember ─────────────────────────────────────────────────────────────
 
+/**
+ * @returns userId — para o caller recarregar o perfil no store após os inserts.
+ */
 export async function signUpMember(
   email: string,
   password: string,
   fullName: string,
   inviteCode: string,
-): Promise<void> {
+): Promise<string> {
   // 1. Criar usuário
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
@@ -116,9 +122,7 @@ export async function signUpMember(
 
   const userId = authData.user?.id;
   if (!userId) {
-    throw new ServiceError(
-      'Conta criada — verifique seu e-mail para confirmar antes de entrar.',
-    );
+    throw new ServiceError('Erro ao criar usuário. Tente novamente.');
   }
 
   // 2. Buscar empresa pelo código de convite (security definer)
@@ -144,6 +148,8 @@ export async function signUpMember(
       profileError,
     );
   }
+
+  return userId;
 }
 
 // ─── signOut ──────────────────────────────────────────────────────────────────
