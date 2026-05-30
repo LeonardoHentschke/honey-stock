@@ -6,23 +6,31 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  Modal,
+  Share,
 } from 'react-native';
 import {
   BellRing,
-  Bell,
   BarChart2,
-  Users,
   Share2,
-  Settings,
   LogOut,
   ChevronRight,
+  Tags,
+  Tag,
+  User,
+  Copy,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { HoneyLogo } from '@/components/ui/honey-logo';
 import { SectionHeader } from '@/components/ui/section-header';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { signOut } from '@/features/auth/models/authService';
+import { signOut, getInviteCode } from '@/features/auth/models/authService';
+import { useDashboardViewModel } from '@/features/dashboard/viewmodels/useDashboardViewModel';
+import type { MoreStackParamList } from '@/navigation/types';
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 interface MenuItem {
@@ -43,16 +51,32 @@ export function MoreScreen() {
   const { profile, session } = useAuth();
   const { top } = useSafeAreaInsets();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [inviteVisible, setInviteVisible] = useState(false);
+  const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
+  const { pendingRemindersCount, companyName } = useDashboardViewModel();
+
+  const { data: inviteCode, isLoading: inviteLoading } = useQuery({
+    queryKey: ['inviteCode'],
+    queryFn: getInviteCode,
+    enabled: inviteVisible,
+    staleTime: 10 * 60_000,
+  });
 
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
       await signOut();
-      // RootNavigator troca automaticamente para AuthStack quando session = null
     } catch {
       setLoggingOut(false);
     }
+  };
+
+  const handleShareInvite = async () => {
+    if (!inviteCode) return;
+    await Share.share({
+      message: `Entre no Mel Manager com o código de convite: ${inviteCode}`,
+    });
   };
 
   const GROUPS: MenuGroup[] = [
@@ -62,20 +86,16 @@ export function MoreScreen() {
         {
           Icon: BellRing,
           label: 'Lembretes',
-          subtitle: '2 pendentes',
-          onPress: null,
-        },
-        {
-          Icon: Bell,
-          label: 'Notificações',
-          subtitle: '4 não lidas',
-          onPress: null,
+          subtitle: pendingRemindersCount > 0
+            ? `${pendingRemindersCount} pendente${pendingRemindersCount !== 1 ? 's' : ''}`
+            : 'Nenhum pendente',
+          onPress: () => navigation.navigate('Reminders'),
         },
         {
           Icon: BarChart2,
           label: 'Relatórios',
           subtitle: 'Vendas, estoque, ranking',
-          onPress: null,
+          onPress: () => navigation.navigate('Reports'),
         },
       ],
     },
@@ -83,16 +103,22 @@ export function MoreScreen() {
       title: 'Cadastros',
       items: [
         {
-          Icon: Users,
-          label: 'Equipe',
-          subtitle: '2 membros · você é admin',
-          onPress: null,
+          Icon: Tags,
+          label: 'Lotes',
+          subtitle: 'Rastreabilidade por envase',
+          onPress: () => navigation.navigate('Batches'),
+        },
+        {
+          Icon: Tag,
+          label: 'Categorias',
+          subtitle: 'Organizar produtos',
+          onPress: () => navigation.navigate('Categories'),
         },
         {
           Icon: Share2,
-          label: 'Convidar membro',
-          subtitle: 'Gerar código de convite',
-          onPress: null,
+          label: 'Código de convite',
+          subtitle: 'Convidar novo membro',
+          onPress: () => setInviteVisible(true),
         },
       ],
     },
@@ -100,10 +126,10 @@ export function MoreScreen() {
       title: 'Conta',
       items: [
         {
-          Icon: Settings,
-          label: 'Configurações',
-          subtitle: 'Conta, integrações, backup',
-          onPress: null,
+          Icon: User,
+          label: 'Perfil',
+          subtitle: profile?.full_name ?? 'Meu perfil',
+          onPress: () => navigation.navigate('Profile'),
         },
         {
           Icon: LogOut,
@@ -129,7 +155,7 @@ export function MoreScreen() {
           <View style={styles.companyCard}>
             <HoneyLogo size={48} />
             <View style={styles.companyText}>
-              <Text style={styles.companyName}>Apiário Taquari</Text>
+              <Text style={styles.companyName}>{companyName || 'Carregando...'}</Text>
               <Text style={styles.companyMeta}>
                 {profile?.full_name ?? 'Usuário'} · admin · plano grátis
               </Text>
@@ -205,8 +231,47 @@ export function MoreScreen() {
         ))}
 
         {/* ── Versão ─────────────────────────────────────────── */}
-        <Text style={styles.version}>Honey Control v0.1.0 · build 1</Text>
+        <Text style={styles.version}>Mel Manager v1.0.0 · build 1</Text>
       </ScrollView>
+
+      {/* ── Modal código de convite ────────────────────────── */}
+      <Modal
+        visible={inviteVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setInviteVisible(false)}
+      >
+        <Pressable style={styles.overlay} onPress={() => setInviteVisible(false)}>
+          <Pressable style={styles.inviteCard} onPress={() => {}}>
+            <Text style={styles.inviteTitle}>Código de convite</Text>
+            <Text style={styles.inviteSubtitle}>
+              Compartilhe este código com quem vai entrar na empresa
+            </Text>
+
+            {inviteLoading ? (
+              <ActivityIndicator size="large" color="#E89B12" style={{ marginVertical: 24 }} />
+            ) : (
+              <View style={styles.codeBox}>
+                <Text style={styles.codeText}>{inviteCode ?? '——'}</Text>
+              </View>
+            )}
+
+            <View style={styles.inviteActions}>
+              <Pressable
+                style={styles.shareBtn}
+                onPress={handleShareInvite}
+                disabled={!inviteCode}
+              >
+                <Copy size={16} color="#9B5F0B" />
+                <Text style={styles.shareBtnText}>Compartilhar</Text>
+              </Pressable>
+              <Pressable style={styles.closeBtn} onPress={() => setInviteVisible(false)}>
+                <Text style={styles.closeBtnText}>Fechar</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -315,7 +380,7 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#E7E2D9',
-    marginLeft: 56, // alinha com o texto após o ícone
+    marginLeft: 56,
   },
   version: {
     textAlign: 'center',
@@ -324,5 +389,78 @@ const styles = StyleSheet.create({
     color: '#A89E91',
     paddingBottom: 24,
     paddingTop: 4,
+  },
+
+  // Invite modal
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(31, 27, 22, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  inviteCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+  },
+  inviteTitle: {
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: '700',
+    color: '#1F1B16',
+    marginBottom: 6,
+  },
+  inviteSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B6258',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  codeBox: {
+    backgroundColor: '#FCEFC8',
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#F9DE91',
+  },
+  codeText: {
+    fontSize: 32,
+    lineHeight: 40,
+    fontWeight: '700',
+    color: '#9B5F0B',
+    letterSpacing: 6,
+  },
+  inviteActions: {
+    width: '100%',
+    gap: 10,
+  },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FCEFC8',
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  shareBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#9B5F0B',
+  },
+  closeBtn: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  closeBtnText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#6B6258',
   },
 });

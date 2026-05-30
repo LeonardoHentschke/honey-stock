@@ -21,8 +21,8 @@ const buttonVariants = cva(
       },
       size: {
         sm: 'h-9 px-3 gap-1',
-        md: 'h-11 px-4 gap-2',
-        lg: 'h-13 px-6 gap-2',
+        md: 'h-12 px-4 gap-2',
+        lg: 'h-[52px] px-6 gap-2',
       },
     },
     defaultVariants: {

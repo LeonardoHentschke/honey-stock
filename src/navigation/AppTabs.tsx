@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Home,
   Package,
@@ -10,12 +11,11 @@ import {
 } from 'lucide-react-native';
 import type { AppTabsParamList } from './types';
 
-// Telas placeholder
 import { DashboardScreen } from '@/features/dashboard/views/DashboardScreen';
-import { ProductListScreen } from '@/features/products/views/ProductListScreen';
-import { SalesScreen } from '@/features/sales/views/SalesScreen';
-import { ContactsScreen } from '@/features/customers/views/ContactsScreen';
-import { MoreScreen } from '@/features/more/views/MoreScreen';
+import { ProductsStack } from './ProductsStack';
+import { SalesStack } from './SalesStack';
+import { ContactsStack } from './ContactsStack';
+import { MoreStack } from './MoreStack';
 
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 
@@ -28,6 +28,7 @@ const INK_50 = '#F5F1EA';
 const INK_100 = '#E7E2D9';
 
 export function AppTabs() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -36,8 +37,8 @@ export function AppTabs() {
           backgroundColor: WHITE,
           borderTopColor: INK_100,
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 8,
+          height: 64 + insets.bottom,
+          paddingBottom: insets.bottom + 8,
           paddingTop: 8,
         },
         tabBarActiveTintColor: HONEY_600,
@@ -63,7 +64,7 @@ export function AppTabs() {
       />
       <Tab.Screen
         name="Products"
-        component={ProductListScreen}
+        component={ProductsStack}
         options={{
           title: 'Produtos',
           tabBarIcon: ({ color, size }) => (
@@ -73,7 +74,7 @@ export function AppTabs() {
       />
       <Tab.Screen
         name="Sales"
-        component={SalesScreen}
+        component={SalesStack}
         options={{
           title: 'Vendas',
           tabBarIcon: ({ focused }) => (
@@ -86,7 +87,7 @@ export function AppTabs() {
       />
       <Tab.Screen
         name="Contacts"
-        component={ContactsScreen}
+        component={ContactsStack}
         options={{
           title: 'Contatos',
           tabBarIcon: ({ color, size }) => (
@@ -96,7 +97,7 @@ export function AppTabs() {
       />
       <Tab.Screen
         name="More"
-        component={MoreScreen}
+        component={MoreStack}
         options={{
           title: 'Mais',
           tabBarIcon: ({ color, size }) => (

@@ -14,6 +14,9 @@ function mapAuthError(error: unknown): string {
       ? String((error as { message: string }).message).toLowerCase()
       : '';
 
+  if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
+    return 'E-mail não confirmado. Verifique sua caixa de entrada ou desative a confirmação no painel do Supabase.';
+  }
   if (msg.includes('invalid_credentials') || msg.includes('invalid login credentials')) {
     return 'E-mail ou senha incorretos.';
   }
@@ -165,6 +168,17 @@ export async function resetPassword(email: string): Promise<void> {
   const redirectTo = makeRedirectUri({ scheme: 'melmanager', path: 'reset-password' });
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
   if (error) throw new ServiceError(mapAuthError(error), error);
+}
+
+// ─── getInviteCode ────────────────────────────────────────────────────────────
+
+export async function getInviteCode(): Promise<string> {
+  const { data, error } = await supabase
+    .from('companies')
+    .select('invite_code')
+    .single();
+  if (error || !data) throw new ServiceError('Erro ao buscar código de convite.', error);
+  return data.invite_code;
 }
 
 // ─── signInWithGoogle ─────────────────────────────────────────────────────────

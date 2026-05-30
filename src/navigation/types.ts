@@ -19,7 +19,18 @@ export type AppTabsParamList = {
   Products: NavigatorScreenParams<ProductsStackParamList>;
   Sales: NavigatorScreenParams<SalesStackParamList>;
   Contacts: NavigatorScreenParams<ContactsStackParamList>;
-  More: undefined;
+  More: NavigatorScreenParams<MoreStackParamList>;
+};
+
+// ─── More Stack ───────────────────────────────────────────────────────────────
+export type MoreStackParamList = {
+  MoreHome: undefined;
+  Batches: undefined;
+  Categories: undefined;
+  Reminders: undefined;
+  ReminderDetail: { reminderId: string };
+  Reports: undefined;
+  Profile: undefined;
 };
 
 // ─── Products Stack ───────────────────────────────────────────────────────────

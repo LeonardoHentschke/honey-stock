@@ -3,11 +3,15 @@ import {
   View,
   Text,
   ScrollView,
+  RefreshControl,
   Pressable,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   Bell,
   AlertTriangle,
@@ -19,60 +23,45 @@ import {
 import { HoneyLogo } from '@/components/ui/honey-logo';
 import { Avatar } from '@/components/ui/avatar';
 import { SectionHeader } from '@/components/ui/section-header';
-import { useAuth } from '@/shared/hooks/useAuth';
+import { useDashboardViewModel, type NextDelivery } from '../viewmodels/useDashboardViewModel';
+import type { AppTabsParamList } from '@/navigation/types';
 
-// ─── Mock data (substituído por queries reais no Sprint 3) ──────────────────
-const MOCK = {
-  companyInitials: 'AT',
-  companyName: 'Apiário Taquari',
-  todayRevenue: 'R$ 324,00',
-  todaySales: 8,
-  monthRevenue: 'R$ 4.180',
-  bestSeller: 'Silvestre',
-  lowStockCount: 3,
-  pendingReminders: 2,
-  nextDeliveries: [
-    {
-      id: '1',
-      when: 'Amanhã · 09:00',
-      customer: 'João Alves',
-      items: '2 mel silvestre 1kg',
-      total: 'R$ 97,90',
-    },
-    {
-      id: '2',
-      when: 'Sex · 25/05',
-      customer: 'Mercado Central',
-      items: '24 mel silv. 500g',
-      total: 'R$ 576,00',
-    },
-  ],
-} as const;
-
-// ─── DashboardScreen ────────────────────────────────────────────────────────
 export function DashboardScreen() {
-  const { profile } = useAuth();
   const { top } = useSafeAreaInsets();
-  const firstName = profile?.full_name?.split(' ')[0] ?? 'André';
+  const vm = useDashboardViewModel();
+  const navigation = useNavigation<BottomTabNavigationProp<AppTabsParamList>>();
 
   return (
     <View style={styles.root}>
       {/* ── App header ────────────────────────────────────────── */}
       <View style={[styles.header, { paddingTop: top + 8 }]}>
-        <Avatar initial={MOCK.companyInitials} size="md" />
+        <Avatar initial={vm.companyInitials || '?'} size="md" />
         <View style={styles.headerText}>
-          <Text style={styles.headerCompany}>{MOCK.companyName}</Text>
-          <Text style={styles.headerGreeting}>Olá, {firstName}</Text>
+          <Text style={styles.headerCompany}>{vm.companyName || '—'}</Text>
+          <Text style={styles.headerGreeting}>Olá, {vm.firstName || '—'}</Text>
         </View>
-        <Pressable style={styles.bellBtn} hitSlop={8} accessibilityLabel="Notificações">
+        <Pressable
+          style={styles.bellBtn}
+          hitSlop={8}
+          accessibilityLabel="Lembretes"
+          onPress={() => navigation.navigate('More', { screen: 'Reminders' })}
+        >
           <Bell size={22} color="#1F1B16" />
-          <View style={styles.bellDot} />
+          {vm.pendingRemindersCount > 0 && <View style={styles.bellDot} />}
         </Pressable>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={vm.isRefetching}
+            onRefresh={vm.refresh}
+            tintColor="#C47C0A"
+            colors={['#C47C0A']}
+          />
+        }
       >
         {/* ── Hero card ─────────────────────────────────────── */}
         <LinearGradient
@@ -81,43 +70,42 @@ export function DashboardScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.heroCard}
         >
-          {/* Watermark logo */}
           <View style={styles.heroWatermark} pointerEvents="none">
             <HoneyLogo size={160} />
           </View>
 
-          {/* Conteúdo */}
-          <Text style={styles.heroDate}>Hoje · sex 23/05</Text>
-          <Text style={styles.heroRevenue}>{MOCK.todayRevenue}</Text>
-
-          <View style={styles.heroStats}>
-            <StatCol label="Vendas" value={String(MOCK.todaySales)} />
-            <View style={styles.heroStatDivider} />
-            <StatCol label="Mês" value={MOCK.monthRevenue} />
-            <View style={styles.heroStatDivider} />
-            <StatCol label="Mais vendido" value={MOCK.bestSeller} />
-          </View>
+          {vm.isLoading ? (
+            <ActivityIndicator color="rgba(255,255,255,0.7)" style={styles.heroLoader} />
+          ) : (
+            <>
+              <Text style={styles.heroDate}>{vm.heroDate}</Text>
+              <Text style={styles.heroRevenue}>{vm.todayRevenue}</Text>
+              <View style={styles.heroStats}>
+                <StatCol label="Vendas" value={String(vm.todaySalesCount)} />
+                <View style={styles.heroStatDivider} />
+                <StatCol label="Mês" value={vm.monthRevenue} />
+                <View style={styles.heroStatDivider} />
+                <StatCol label="Mais vendido" value={vm.bestSeller} />
+              </View>
+            </>
+          )}
         </LinearGradient>
 
         {/* ── Próximas entregas ─────────────────────────────── */}
         <SectionHeader style={styles.sectionMT}>Próximas entregas</SectionHeader>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.deliveriesScroll}
-        >
-          {MOCK.nextDeliveries.map((d) => (
-            <View key={d.id} style={styles.deliveryCard}>
-              <Text style={styles.deliveryWhen}>{d.when}</Text>
-              <Text style={styles.deliveryCustomer}>{d.customer}</Text>
-              <Text style={styles.deliveryItems}>{d.items}</Text>
-              <View style={styles.deliveryFooter}>
-                <Text style={styles.deliveryTotal}>{d.total}</Text>
-                <ArrowRight size={18} color="#C47C0A" />
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+        {vm.nextDeliveries.length === 0 && !vm.isLoading ? (
+          <Text style={styles.emptyText}>Nenhuma entrega agendada.</Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.deliveriesScroll}
+          >
+            {vm.nextDeliveries.map((d) => (
+              <DeliveryCard key={d.id} delivery={d} />
+            ))}
+          </ScrollView>
+        )}
 
         {/* ── Resumo: estoque + lembretes ───────────────────── */}
         <View style={styles.summary}>
@@ -126,14 +114,23 @@ export function DashboardScreen() {
             iconColor="#C77700"
             Icon={AlertTriangle}
             title="Estoque baixo"
-            subtitle={`${MOCK.lowStockCount} variantes precisam reposição`}
+            subtitle={
+              vm.lowStockCount > 0
+                ? `${vm.lowStockCount} variante${vm.lowStockCount > 1 ? 's' : ''} precisam reposição`
+                : 'Nenhuma variante em baixo estoque'
+            }
           />
           <CardRow
             iconBg="#FCEFC8"
             iconColor="#9B5F0B"
             Icon={BellRing}
-            title={`${MOCK.pendingReminders} lembretes pendentes`}
-            subtitle="Próximo: cobrar Maria Padaria · 16h"
+            title={
+              vm.pendingRemindersCount > 0
+                ? `${vm.pendingRemindersCount} lembrete${vm.pendingRemindersCount > 1 ? 's' : ''} pendente${vm.pendingRemindersCount > 1 ? 's' : ''}`
+                : 'Sem lembretes pendentes'
+            }
+            subtitle="Toque para ver todos os lembretes"
+            onPress={() => navigation.navigate('More', { screen: 'Reminders' })}
           />
         </View>
       </ScrollView>
@@ -142,6 +139,20 @@ export function DashboardScreen() {
 }
 
 // ─── Sub-componentes ────────────────────────────────────────────────────────
+
+function DeliveryCard({ delivery }: { delivery: NextDelivery }) {
+  return (
+    <View style={styles.deliveryCard}>
+      <Text style={styles.deliveryWhen}>{delivery.when}</Text>
+      <Text style={styles.deliveryCustomer}>{delivery.customerName}</Text>
+      <Text style={styles.deliveryItems}>{delivery.itemsSummary}</Text>
+      <View style={styles.deliveryFooter}>
+        <Text style={styles.deliveryTotal}>{delivery.total}</Text>
+        <ArrowRight size={18} color="#C47C0A" />
+      </View>
+    </View>
+  );
+}
 
 function StatCol({ label, value }: { label: string; value: string }) {
   return (
@@ -158,10 +169,15 @@ interface CardRowProps {
   Icon: React.ComponentType<{ size: number; color: string }>;
   title: string;
   subtitle: string;
+  onPress?: () => void;
 }
-function CardRow({ iconBg, iconColor, Icon, title, subtitle }: CardRowProps) {
+function CardRow({ iconBg, iconColor, Icon, title, subtitle, onPress }: CardRowProps) {
   return (
-    <View style={styles.cardRow}>
+    <Pressable
+      style={({ pressed }) => [styles.cardRow, pressed && onPress ? { opacity: 0.85 } : null]}
+      onPress={onPress}
+      disabled={!onPress}
+    >
       <View style={[styles.cardRowIcon, { backgroundColor: iconBg }]}>
         <Icon size={22} color={iconColor} />
       </View>
@@ -170,7 +186,7 @@ function CardRow({ iconBg, iconColor, Icon, title, subtitle }: CardRowProps) {
         <Text style={styles.cardRowSubtitle}>{subtitle}</Text>
       </View>
       <ChevronRight size={20} color="#A89E91" />
-    </View>
+    </Pressable>
   );
 }
 
@@ -181,7 +197,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F1EA',
   },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -223,24 +238,26 @@ const styles = StyleSheet.create({
     borderColor: '#F5F1EA',
   },
 
-  // Scroll
   scrollContent: {
     paddingBottom: 32,
   },
 
-  // Hero card
   heroCard: {
     marginHorizontal: 24,
     marginTop: 12,
     borderRadius: 20,
     padding: 22,
     overflow: 'hidden',
+    minHeight: 140,
   },
   heroWatermark: {
     position: 'absolute',
     right: -20,
     bottom: -20,
     opacity: 0.15,
+  },
+  heroLoader: {
+    marginTop: 24,
   },
   heroDate: {
     fontSize: 12,
@@ -280,12 +297,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // Section
   sectionMT: {
     marginTop: 24,
   },
+  emptyText: {
+    marginHorizontal: 24,
+    marginTop: 12,
+    fontSize: 14,
+    color: '#A89E91',
+  },
 
-  // Deliveries
   deliveriesScroll: {
     paddingHorizontal: 24,
     paddingTop: 12,
@@ -298,7 +319,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 14,
     gap: 8,
-    // sombra
     shadowColor: '#1F1B16',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -338,7 +358,6 @@ const styles = StyleSheet.create({
     color: '#1F1B16',
   },
 
-  // Summary
   summary: {
     paddingHorizontal: 24,
     paddingTop: 20,
@@ -351,7 +370,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
-    // sombra
     shadowColor: '#1F1B16',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
