@@ -70,11 +70,13 @@ export const productService = {
   },
 
   async create(companyId: string, input: CreateProductInput): Promise<Product> {
+    console.log('[productService] create → companyId:', companyId, '| input:', JSON.stringify(input));
     const { data, error } = await supabase
       .from('products')
       .insert({ company_id: companyId, ...input })
       .select()
       .single();
+    console.log('[productService] create → data:', JSON.stringify(data), '| error:', error?.message, error?.details);
     if (error) throw new ServiceError('Erro ao criar produto.', error);
     return data;
   },

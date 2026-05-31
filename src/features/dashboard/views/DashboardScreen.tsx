@@ -174,18 +174,22 @@ interface CardRowProps {
 function CardRow({ iconBg, iconColor, Icon, title, subtitle, onPress }: CardRowProps) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.cardRow, pressed && onPress ? { opacity: 0.85 } : null]}
       onPress={onPress}
       disabled={!onPress}
+      style={({ pressed }) => pressed && onPress ? { opacity: 0.85 } : undefined}
     >
-      <View style={[styles.cardRowIcon, { backgroundColor: iconBg }]}>
-        <Icon size={22} color={iconColor} />
+      <View style={styles.cardRow}>
+        <View style={[styles.cardRowIcon, { backgroundColor: iconBg }]}>
+          <Icon size={22} color={iconColor} />
+        </View>
+        <View style={styles.cardRowText}>
+          <Text style={styles.cardRowTitle}>{title}</Text>
+          <Text style={styles.cardRowSubtitle}>{subtitle}</Text>
+        </View>
+        <View style={styles.cardRowChevron}>
+          <ChevronRight size={20} color="#A89E91" />
+        </View>
       </View>
-      <View style={styles.cardRowText}>
-        <Text style={styles.cardRowTitle}>{title}</Text>
-        <Text style={styles.cardRowSubtitle}>{subtitle}</Text>
-      </View>
-      <ChevronRight size={20} color="#A89E91" />
     </Pressable>
   );
 }
@@ -366,15 +370,14 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     shadowColor: '#1F1B16',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   cardRowIcon: {
     width: 44,
@@ -382,10 +385,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 14,
   },
   cardRowText: {
     flex: 1,
     minWidth: 0,
+  },
+  cardRowChevron: {
+    marginLeft: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardRowTitle: {
     fontSize: 15,

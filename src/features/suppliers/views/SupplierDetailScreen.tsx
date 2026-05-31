@@ -16,9 +16,9 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import { useSupplierDetailViewModel } from '../viewmodels/useSupplierDetailViewModel';
 import { SupplierFormSheet } from './components/SupplierFormSheet';
 import { humanizeError } from '@/shared/lib/errors';
-import type { ContactsStackParamList } from '@/navigation/types';
+import type { MoreStackParamList } from '@/navigation/types';
 
-type Route = RouteProp<ContactsStackParamList, 'SupplierDetail'>;
+type Route = RouteProp<MoreStackParamList, 'SupplierDetail'>;
 
 export function SupplierDetailScreen() {
   const { top } = useSafeAreaInsets();

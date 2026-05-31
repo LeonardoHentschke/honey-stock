@@ -31,6 +31,12 @@ export type MoreStackParamList = {
   ReminderDetail: { reminderId: string };
   Reports: undefined;
   Profile: undefined;
+  StockMoves: undefined;
+  Notifications: undefined;
+  Suppliers: undefined;
+  SupplierDetail: { supplierId: string };
+  Team: undefined;
+  Settings: undefined;
 };
 
 // ─── Products Stack ───────────────────────────────────────────────────────────
@@ -51,7 +57,6 @@ export type SalesStackParamList = {
 export type ContactsStackParamList = {
   ContactsList: undefined;
   CustomerDetail: { customerId: string };
-  SupplierDetail: { supplierId: string };
 };
 
 // ─── Root ─────────────────────────────────────────────────────────────────────

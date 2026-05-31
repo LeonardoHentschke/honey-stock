@@ -47,6 +47,7 @@ export function useProductFormViewModel({ mode, product, onSuccess }: UseProduct
 
   const mutation = useMutation({
     mutationFn: (values: CreateProductValues) => {
+      console.log('[ProductForm] submit → profile:', JSON.stringify(profile), '| company_id:', profile?.company_id);
       if (mode === 'edit' && product) {
         return productService.update(product.id, values);
       }

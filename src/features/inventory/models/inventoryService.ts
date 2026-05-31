@@ -3,6 +3,7 @@ import { ServiceError } from '@/shared/lib/errors';
 import type { Database } from '@/shared/types/database.types';
 
 type StockMovement = Database['public']['Tables']['stock_movements']['Row'];
+type StockMovementType = Database['public']['Enums']['stock_movement_type'];
 
 export interface MovementWithDetails extends StockMovement {
   batch: { code: string } | null;
@@ -101,4 +102,27 @@ export const inventoryService = {
     if (error) throw new ServiceError('Erro ao buscar movimentações.', error);
     return (data ?? []) as unknown as MovementWithDetails[];
   },
+
+  async listAllMovements(
+    companyId: string,
+    type?: StockMovementType | null,
+    limit = 50,
+  ): Promise<MovementWithVariant[]> {
+    let q = supabase
+      .from('stock_movements')
+      .select('*, batch:batches(code), supplier:suppliers(name), variant:product_variants(sku, product:products(name))')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (type) q = q.eq('type', type);
+    const { data, error } = await q;
+    if (error) throw new ServiceError('Erro ao buscar movimentações.', error);
+    return (data ?? []) as unknown as MovementWithVariant[];
+  },
 };
+
+export interface MovementWithVariant extends StockMovement {
+  batch: { code: string } | null;
+  supplier: { name: string } | null;
+  variant: { sku: string; product: { name: string } | null } | null;
+}

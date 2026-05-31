@@ -131,6 +131,7 @@ export function useDashboardViewModel() {
 
   return {
     ...(query.data ?? empty),
+    firstName: profile?.full_name?.split(' ')[0] ?? '',
     isLoading: query.isLoading,
     isRefetching: query.isRefetching,
     error: query.error,

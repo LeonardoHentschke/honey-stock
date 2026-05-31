@@ -80,6 +80,8 @@ export async function signUpOwner(
     .select('id')
     .single();
 
+  console.log('[signUpOwner] insert company → id:', company?.id, '| error:', companyError?.message, companyError?.details);
+
   if (companyError || !company) {
     throw new ServiceError(
       'Conta criada, mas houve um problema ao criar a empresa. Tente fazer login.',
@@ -93,6 +95,8 @@ export async function signUpOwner(
     company_id: company.id,
     full_name: fullName,
   });
+
+  console.log('[signUpOwner] insert profile → userId:', userId, 'company_id:', company.id, '| error:', profileError?.message, profileError?.details);
 
   if (profileError) {
     throw new ServiceError(

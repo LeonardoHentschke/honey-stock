@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,51 +8,63 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
-import { Plus, Search, UserRound, Truck, Pencil, ChevronRight } from 'lucide-react-native';
+import { Plus, Search, UserRound, Phone } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useContactsViewModel, type ContactsTab } from '../viewmodels/useContactsViewModel';
 import { CustomerFormSheet } from './components/CustomerFormSheet';
-import { SupplierFormSheet } from '@/features/suppliers/views/components/SupplierFormSheet';
 import type { Customer } from '../models/customerService';
-import type { Supplier } from '@/features/suppliers/models/supplierService';
 import type { ContactsStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<ContactsStackParamList>;
 
 const TABS: { key: ContactsTab; label: string }[] = [
-  { key: 'final', label: 'Finais' },
-  { key: 'reseller', label: 'Revendas' },
-  { key: 'suppliers', label: 'Fornecedores' },
+  { key: 'final', label: 'Final' },
+  { key: 'reseller', label: 'Revenda' },
 ];
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
 
 export function ContactsScreen() {
   const { top } = useSafeAreaInsets();
   const vm = useContactsViewModel();
   const navigation = useNavigation<Nav>();
 
-  const isCustomerTab = vm.activeTab !== 'suppliers';
-  const isLoading = isCustomerTab ? vm.isLoadingCustomers : vm.isLoadingSuppliers;
+  // Agrupar em pares para o grid de 2 colunas
+  const rows = useMemo(() => {
+    const result: Customer[][] = [];
+    for (let i = 0; i < vm.customers.length; i += 2) {
+      result.push(vm.customers.slice(i, i + 2));
+    }
+    return result;
+  }, [vm.customers]);
 
   return (
     <View style={styles.root}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
-        <Text style={styles.title}>Contatos</Text>
+      {/* ── Header ──────────────────────────────────────────── */}
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
+        <Text style={styles.title}>Clientes</Text>
         <Pressable
-          onPress={isCustomerTab ? vm.openCreateCustomer : vm.openCreateSupplier}
+          onPress={vm.openCreateCustomer}
           style={styles.addBtn}
-          accessibilityLabel="Novo contato"
+          accessibilityLabel="Novo cliente"
         >
           <Plus size={20} color="#9B5F0B" />
         </Pressable>
       </View>
 
-      {/* Abas */}
-      <View style={styles.tabs}>
+      {/* ── Tabs (underline) ────────────────────────────────── */}
+      <View style={styles.tabsRow}>
         {TABS.map(({ key, label }) => (
           <Pressable
             key={key}
@@ -66,58 +78,41 @@ export function ContactsScreen() {
         ))}
       </View>
 
-      {/* Busca */}
-      <View style={styles.searchPadding}>
+      {/* ── Busca ───────────────────────────────────────────── */}
+      <View style={styles.searchWrap}>
         <View style={styles.searchBar}>
           <Search size={18} color="#A89E91" />
           <TextInput
             style={styles.searchInput}
             value={vm.search}
             onChangeText={vm.setSearch}
-            placeholder="Buscar por nome ou telefone..."
+            placeholder={`Buscar cliente ${vm.activeTab === 'reseller' ? 'revenda' : 'final'}...`}
             placeholderTextColor="#A89E91"
             clearButtonMode="while-editing"
           />
         </View>
       </View>
 
-      {isLoading ? (
+      {vm.isLoadingCustomers ? (
         <View style={styles.centered}>
           <ActivityIndicator color="#C47C0A" size="large" />
         </View>
-      ) : isCustomerTab ? (
-        <FlatList
-          data={vm.customers}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={vm.customers.length === 0 ? styles.flex : styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={vm.isRefetching}
-              onRefresh={vm.refresh}
-              tintColor="#C47C0A"
-              colors={['#C47C0A']}
-            />
-          }
-          renderItem={({ item }) => (
-            <CustomerCard
-              customer={item}
-              onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
-              onEdit={() => vm.openEditCustomer(item)}
-            />
-          )}
-          ListEmptyComponent={
-            <EmptyState
-              icon={<UserRound size={36} color="#F5C859" />}
-              title={vm.search ? 'Nenhum cliente encontrado' : `Nenhum cliente ${vm.activeTab === 'final' ? 'final' : 'revendedor'}`}
-              body={vm.search ? 'Tente outro nome.' : 'Adicione clientes pelo botão +.'}
-            />
-          }
-        />
+      ) : rows.length === 0 ? (
+        <View style={styles.flex}>
+          <EmptyState
+            title={
+              vm.search
+                ? 'Nenhum cliente encontrado'
+                : `Nenhum cliente ${vm.activeTab === 'final' ? 'final' : 'revendedor'}`
+            }
+            body={vm.search ? 'Tente outro nome.' : 'Adicione clientes pelo botão +.'}
+          />
+        </View>
       ) : (
         <FlatList
-          data={vm.suppliers}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={vm.suppliers.length === 0 ? styles.flex : styles.listContent}
+          data={rows}
+          keyExtractor={(_, i) => String(i)}
+          contentContainerStyle={styles.gridContent}
           refreshControl={
             <RefreshControl
               refreshing={vm.isRefetching}
@@ -126,20 +121,22 @@ export function ContactsScreen() {
               colors={['#C47C0A']}
             />
           }
-          renderItem={({ item }) => (
-            <SupplierCard
-              supplier={item}
-              onPress={() => navigation.navigate('SupplierDetail', { supplierId: item.id })}
-              onEdit={() => vm.openEditSupplier(item)}
-            />
+          renderItem={({ item: pair }) => (
+            <View style={styles.row}>
+              <CustomerCard
+                customer={pair[0]}
+                onPress={() => navigation.navigate('CustomerDetail', { customerId: pair[0].id })}
+              />
+              {pair[1] ? (
+                <CustomerCard
+                  customer={pair[1]}
+                  onPress={() => navigation.navigate('CustomerDetail', { customerId: pair[1].id })}
+                />
+              ) : (
+                <View style={styles.cardPlaceholder} />
+              )}
+            </View>
           )}
-          ListEmptyComponent={
-            <EmptyState
-              icon={<Truck size={36} color="#F5C859" />}
-              title={vm.search ? 'Nenhum fornecedor encontrado' : 'Nenhum fornecedor cadastrado'}
-              body={vm.search ? 'Tente outro nome.' : 'Adicione fornecedores pelo botão +.'}
-            />
-          }
         />
       )}
 
@@ -151,22 +148,19 @@ export function ContactsScreen() {
         onSave={vm.saveCustomer}
         onClose={vm.closeCustomerSheet}
       />
-
-      <SupplierFormSheet
-        visible={vm.showSupplierSheet}
-        editingSupplier={vm.editingSupplier}
-        isSaving={vm.isSavingSupplier}
-        error={vm.supplierError}
-        onSave={vm.saveSupplier}
-        onClose={vm.closeSupplierSheet}
-      />
     </View>
   );
 }
 
-// ─── Sub-componentes ──────────────────────────────────────────────────────────
+// ─── CustomerCard (grid tile) ─────────────────────────────────────────────────
 
-function CustomerCard({ customer, onPress, onEdit }: { customer: Customer; onPress: () => void; onEdit: () => void }) {
+function CustomerCard({
+  customer,
+  onPress,
+}: {
+  customer: Customer;
+  onPress: () => void;
+}) {
   const isReseller = customer.type === 'reseller';
 
   return (
@@ -174,75 +168,56 @@ function CustomerCard({ customer, onPress, onEdit }: { customer: Customer; onPre
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onPress}
     >
-      <View style={styles.cardTop}>
-        <View style={styles.cardInfo}>
-          <View style={styles.cardNameRow}>
-            <Text style={styles.cardName}>{customer.name}</Text>
-            <View style={[styles.badge, isReseller ? styles.badgeReseller : styles.badgeFinal]}>
-              <Text style={[styles.badgeText, isReseller ? styles.badgeTextReseller : styles.badgeTextFinal]}>
-                {isReseller ? 'Revenda' : 'Final'}
-              </Text>
-            </View>
-          </View>
-          {isReseller && customer.business_name ? (
-            <Text style={styles.cardSub}>{customer.business_name}</Text>
-          ) : null}
-          {customer.phone ? (
-            <Text style={styles.cardDetail}>{customer.phone}</Text>
-          ) : null}
-          {isReseller && customer.reseller_discount_percent != null ? (
-            <Text style={styles.cardDiscount}>{customer.reseller_discount_percent}% desc. padrão</Text>
-          ) : null}
-        </View>
-        <View style={styles.cardActions}>
-          <Pressable onPress={onEdit} hitSlop={8} style={styles.editBtn}>
-            <Pencil size={15} color="#A89E91" />
-          </Pressable>
-          <ChevronRight size={16} color="#A89E91" />
-        </View>
+      <View style={[styles.avatar, isReseller ? styles.avatarReseller : styles.avatarFinal]}>
+        <Text style={[styles.avatarText, isReseller ? styles.avatarTextReseller : styles.avatarTextFinal]}>
+          {getInitials(customer.name)}
+        </Text>
       </View>
+
+      <Text style={styles.cardName} numberOfLines={2}>{customer.name}</Text>
+
+      <Text style={styles.cardSubtitle} numberOfLines={1}>
+        {isReseller ? (customer.business_name ?? 'Revenda') : 'Cliente final'}
+      </Text>
+
+      <View style={styles.divider} />
+
+      {isReseller ? (
+        <View style={styles.discountRow}>
+          <Text style={styles.discountLabel}>Desconto</Text>
+          <Text style={styles.discountValue}>
+            {customer.reseller_discount_percent != null
+              ? `${customer.reseller_discount_percent}%`
+              : '—'}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.phoneRow}>
+          <Phone size={12} color="#A89E91" />
+          <Text style={styles.phoneText} numberOfLines={1}>
+            {customer.phone ?? '—'}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }
 
-function SupplierCard({ supplier, onPress, onEdit }: { supplier: Supplier; onPress: () => void; onEdit: () => void }) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={onPress}
-    >
-      <View style={styles.cardTop}>
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardName}>{supplier.name}</Text>
-          {supplier.document ? (
-            <Text style={styles.cardDetail}>{supplier.document}</Text>
-          ) : null}
-          {supplier.phone ? (
-            <Text style={styles.cardDetail}>{supplier.phone}</Text>
-          ) : null}
-        </View>
-        <View style={styles.cardActions}>
-          <Pressable onPress={onEdit} hitSlop={8} style={styles.editBtn}>
-            <Pencil size={15} color="#A89E91" />
-          </Pressable>
-          <ChevronRight size={16} color="#A89E91" />
-        </View>
-      </View>
-    </Pressable>
-  );
-}
+// ─── EmptyState ──────────────────────────────────────────────────────────────
 
-function EmptyState({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconWrap}>{icon}</View>
+      <View style={styles.emptyIconWrap}>
+        <UserRound size={36} color="#F5C859" />
+      </View>
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptyBody}>{body}</Text>
     </View>
   );
 }
 
-// ─── Estilos ────────────────────────────────────────────────────────────────
+// ─── Estilos ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F5F1EA' },
   flex: { flex: 1 },
@@ -253,30 +228,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingBottom: 12,
+    paddingBottom: 8,
   },
-  title: { fontSize: 24, fontWeight: '700', color: '#1F1B16' },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16', letterSpacing: -0.2 },
   addBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#FCEFC8', alignItems: 'center', justifyContent: 'center',
   },
 
-  tabs: {
+  // Underline tabs
+  tabsRow: {
     flexDirection: 'row',
     paddingHorizontal: 24,
-    paddingBottom: 12,
-    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E7E2D9',
   },
   tab: {
-    flex: 1, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: '#FFFFFF', alignItems: 'center',
-    borderWidth: 1, borderColor: '#E7E2D9',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    marginRight: 24,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    marginBottom: -1,
   },
-  tabActive: { backgroundColor: '#FCEFC8', borderColor: '#C47C0A' },
-  tabText: { fontSize: 13, fontWeight: '500', color: '#6B6258' },
-  tabTextActive: { color: '#9B5F0B', fontWeight: '600' },
+  tabActive: { borderBottomColor: '#C47C0A' },
+  tabText: { fontSize: 15, fontWeight: '500', color: '#6B6258' },
+  tabTextActive: { color: '#C47C0A', fontWeight: '600' },
 
-  searchPadding: { paddingHorizontal: 24, paddingBottom: 12 },
+  // Search
+  searchWrap: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 4 },
   searchBar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#FFFFFF', borderRadius: 10, height: 44,
@@ -285,36 +265,50 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 15, color: '#1F1B16' },
 
-  listContent: { paddingHorizontal: 24, paddingBottom: 32, gap: 10 },
+  // Grid
+  gridContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  row: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  cardPlaceholder: { flex: 1 },
 
+  // Card tile
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 14,
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     padding: 16,
-    shadowColor: '#1F1B16', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+    shadowColor: '#1F1B16',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  cardPressed: { backgroundColor: '#FEF9EC' },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
-  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 },
-  cardInfo: { flex: 1, gap: 3 },
-  cardNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  cardName: { fontSize: 16, fontWeight: '700', color: '#1F1B16' },
-  cardSub: { fontSize: 13, color: '#6B6258' },
-  cardDetail: { fontSize: 13, color: '#A89E91' },
-  cardDiscount: { fontSize: 12, color: '#9B5F0B', fontWeight: '600' },
-  editBtn: {
-    width: 30, height: 30, borderRadius: 8,
-    backgroundColor: '#F5F1EA', alignItems: 'center', justifyContent: 'center',
-    marginLeft: 8,
+  cardPressed: { backgroundColor: '#FDFAF4' },
+
+  // Avatar
+  avatar: {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 10,
   },
+  avatarFinal: { backgroundColor: '#FCEFC8' },
+  avatarReseller: { backgroundColor: '#E3D0AE' },
+  avatarText: { fontSize: 18, fontWeight: '700' },
+  avatarTextFinal: { color: '#9B5F0B' },
+  avatarTextReseller: { color: '#7A5A2A' },
 
-  badge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
-  badgeFinal: { backgroundColor: '#EFF6FF' },
-  badgeReseller: { backgroundColor: '#FCEFC8' },
-  badgeText: { fontSize: 11, fontWeight: '600' },
-  badgeTextFinal: { color: '#1D4ED8' },
-  badgeTextReseller: { color: '#9B5F0B' },
+  cardName: { fontSize: 15, lineHeight: 21, fontWeight: '700', color: '#1F1B16', marginBottom: 2 },
+  cardSubtitle: { fontSize: 12, lineHeight: 16, color: '#6B6258', marginBottom: 10 },
 
+  divider: { height: 1, backgroundColor: '#E7E2D9', marginBottom: 10 },
+
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  phoneText: { fontSize: 12, lineHeight: 16, color: '#6B6258', flex: 1 },
+
+  discountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  discountLabel: { fontSize: 12, lineHeight: 16, color: '#6B6258' },
+  discountValue: { fontSize: 14, lineHeight: 18, fontWeight: '700', color: '#C47C0A' },
+
+  // Empty state
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyIconWrap: {
     width: 72, height: 72, borderRadius: 36,

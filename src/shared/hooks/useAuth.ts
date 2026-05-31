@@ -42,11 +42,13 @@ export function useAuthListener() {
 
   async function loadProfile(userId: string) {
     setLoading(true);
-    const { data: profile } = await supabase
+    console.log('[useAuth] loadProfile → userId:', userId);
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
+    console.log('[useAuth] loadProfile → profile:', JSON.stringify(profile), '| error:', error?.message);
     setProfile(profile ?? null);
     setLoading(false);
   }
@@ -74,11 +76,13 @@ export function useAuth() {
 export async function reloadProfile(userId: string): Promise<void> {
   const { setProfile, setLoading } = useAuthStore.getState();
   setLoading(true);
-  const { data: profile } = await supabase
+  console.log('[useAuth] reloadProfile → userId:', userId);
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
     .single();
+  console.log('[useAuth] reloadProfile → profile:', JSON.stringify(profile), '| error:', error?.message);
   setProfile(profile ?? null);
   setLoading(false);
 }
