@@ -9,14 +9,19 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Plus, Search, UserRound, Truck, Pencil } from 'lucide-react-native';
+import { Plus, Search, UserRound, Truck, Pencil, ChevronRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useContactsViewModel, type ContactsTab } from '../viewmodels/useContactsViewModel';
 import { CustomerFormSheet } from './components/CustomerFormSheet';
 import { SupplierFormSheet } from '@/features/suppliers/views/components/SupplierFormSheet';
 import type { Customer } from '../models/customerService';
 import type { Supplier } from '@/features/suppliers/models/supplierService';
+import type { ContactsStackParamList } from '@/navigation/types';
+
+type Nav = NativeStackNavigationProp<ContactsStackParamList>;
 
 const TABS: { key: ContactsTab; label: string }[] = [
   { key: 'final', label: 'Finais' },
@@ -27,6 +32,7 @@ const TABS: { key: ContactsTab; label: string }[] = [
 export function ContactsScreen() {
   const { top } = useSafeAreaInsets();
   const vm = useContactsViewModel();
+  const navigation = useNavigation<Nav>();
 
   const isCustomerTab = vm.activeTab !== 'suppliers';
   const isLoading = isCustomerTab ? vm.isLoadingCustomers : vm.isLoadingSuppliers;
@@ -93,7 +99,11 @@ export function ContactsScreen() {
             />
           }
           renderItem={({ item }) => (
-            <CustomerCard customer={item} onEdit={() => vm.openEditCustomer(item)} />
+            <CustomerCard
+              customer={item}
+              onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
+              onEdit={() => vm.openEditCustomer(item)}
+            />
           )}
           ListEmptyComponent={
             <EmptyState
@@ -117,7 +127,11 @@ export function ContactsScreen() {
             />
           }
           renderItem={({ item }) => (
-            <SupplierCard supplier={item} onEdit={() => vm.openEditSupplier(item)} />
+            <SupplierCard
+              supplier={item}
+              onPress={() => navigation.navigate('SupplierDetail', { supplierId: item.id })}
+              onEdit={() => vm.openEditSupplier(item)}
+            />
           )}
           ListEmptyComponent={
             <EmptyState
@@ -152,11 +166,14 @@ export function ContactsScreen() {
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
-function CustomerCard({ customer, onEdit }: { customer: Customer; onEdit: () => void }) {
+function CustomerCard({ customer, onPress, onEdit }: { customer: Customer; onPress: () => void; onEdit: () => void }) {
   const isReseller = customer.type === 'reseller';
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPress}
+    >
       <View style={styles.cardTop}>
         <View style={styles.cardInfo}>
           <View style={styles.cardNameRow}>
@@ -177,17 +194,23 @@ function CustomerCard({ customer, onEdit }: { customer: Customer; onEdit: () => 
             <Text style={styles.cardDiscount}>{customer.reseller_discount_percent}% desc. padrão</Text>
           ) : null}
         </View>
-        <Pressable onPress={onEdit} hitSlop={8} style={styles.editBtn}>
-          <Pencil size={15} color="#A89E91" />
-        </Pressable>
+        <View style={styles.cardActions}>
+          <Pressable onPress={onEdit} hitSlop={8} style={styles.editBtn}>
+            <Pencil size={15} color="#A89E91" />
+          </Pressable>
+          <ChevronRight size={16} color="#A89E91" />
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-function SupplierCard({ supplier, onEdit }: { supplier: Supplier; onEdit: () => void }) {
+function SupplierCard({ supplier, onPress, onEdit }: { supplier: Supplier; onPress: () => void; onEdit: () => void }) {
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPress}
+    >
       <View style={styles.cardTop}>
         <View style={styles.cardInfo}>
           <Text style={styles.cardName}>{supplier.name}</Text>
@@ -198,11 +221,14 @@ function SupplierCard({ supplier, onEdit }: { supplier: Supplier; onEdit: () => 
             <Text style={styles.cardDetail}>{supplier.phone}</Text>
           ) : null}
         </View>
-        <Pressable onPress={onEdit} hitSlop={8} style={styles.editBtn}>
-          <Pencil size={15} color="#A89E91" />
-        </Pressable>
+        <View style={styles.cardActions}>
+          <Pressable onPress={onEdit} hitSlop={8} style={styles.editBtn}>
+            <Pencil size={15} color="#A89E91" />
+          </Pressable>
+          <ChevronRight size={16} color="#A89E91" />
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -267,7 +293,9 @@ const styles = StyleSheet.create({
     shadowColor: '#1F1B16', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
   },
+  cardPressed: { backgroundColor: '#FEF9EC' },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 },
   cardInfo: { flex: 1, gap: 3 },
   cardNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   cardName: { fontSize: 16, fontWeight: '700', color: '#1F1B16' },

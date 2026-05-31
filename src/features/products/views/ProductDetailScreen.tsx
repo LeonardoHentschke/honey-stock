@@ -16,9 +16,11 @@ import {
   AlertTriangle,
   Boxes,
   ArrowUpDown,
+  ChevronRight,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useProductDetailViewModel } from '../viewmodels/useProductDetailViewModel';
 import { ProductFormSheet } from './components/ProductFormSheet';
@@ -30,10 +32,11 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import type { ProductsStackParamList } from '@/navigation/types';
 
 type Route = RouteProp<ProductsStackParamList, 'ProductDetail'>;
+type Nav = NativeStackNavigationProp<ProductsStackParamList>;
 
 export function ProductDetailScreen() {
   const { top } = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { productId } = route.params;
   const vm = useProductDetailViewModel(productId);
@@ -151,6 +154,7 @@ export function ProductDetailScreen() {
                 <VariantCard
                   key={v.id}
                   variant={v}
+                  onPress={() => navigation.navigate('VariantDetail', { variantId: v.id })}
                   onEdit={() => vm.openEditVariantSheet(v.id)}
                   onMove={() => {
                     setMovingVariantId(v.id);
@@ -223,17 +227,22 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function VariantCard({
   variant,
+  onPress,
   onEdit,
   onMove,
 }: {
   variant: ProductVariant;
+  onPress: () => void;
   onEdit: () => void;
   onMove: () => void;
 }) {
   const isLowStock = variant.stock_quantity <= variant.min_stock;
 
   return (
-    <View style={styles.variantCard}>
+    <Pressable
+      style={({ pressed }) => [styles.variantCard, pressed && styles.variantCardPressed]}
+      onPress={onPress}
+    >
       <View style={styles.variantCardTop}>
         <View style={styles.variantCardLeft}>
           <Text style={styles.variantPackaging}>{variant.packaging ?? variant.sku}</Text>
@@ -247,6 +256,7 @@ function VariantCard({
           <Pressable onPress={onEdit} hitSlop={8} style={styles.editVariantBtn}>
             <Pencil size={14} color="#A89E91" />
           </Pressable>
+          <ChevronRight size={16} color="#A89E91" />
         </View>
       </View>
 
@@ -278,7 +288,7 @@ function VariantCard({
           )}
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -356,6 +366,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     gap: 12,
+  },
+  variantCardPressed: {
+    backgroundColor: '#FEF9EC',
   },
   variantCardTop: {
     flexDirection: 'row',

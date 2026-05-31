@@ -14,6 +14,16 @@ export interface SupplierInput {
 }
 
 export const supplierService = {
+  async get(id: string): Promise<Supplier> {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error || !data) throw new ServiceError('Fornecedor não encontrado.', error);
+    return data;
+  },
+
   async list(companyId: string): Promise<Supplier[]> {
     const { data, error } = await supabase
       .from('suppliers')

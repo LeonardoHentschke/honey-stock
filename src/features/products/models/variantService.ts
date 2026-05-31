@@ -47,7 +47,56 @@ export interface ActiveVariant {
   honey_type: string | null;
 }
 
+export interface VariantWithProduct {
+  id: string;
+  product_id: string;
+  company_id: string;
+  sku: string;
+  packaging: string | null;
+  unit: string;
+  weight_grams: number | null;
+  cost_price: number;
+  sale_price: number;
+  reseller_price: number | null;
+  stock_quantity: number;
+  min_stock: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  product_name: string;
+  honey_type: string | null;
+}
+
 export const variantService = {
+  async getWithProduct(variantId: string): Promise<VariantWithProduct> {
+    const { data, error } = await supabase
+      .from('product_variants')
+      .select('*, products(name, honey_type)')
+      .eq('id', variantId)
+      .single();
+    if (error || !data) throw new ServiceError('Variante não encontrada.', error);
+    const r = data as typeof data & { products: { name: string; honey_type: string | null } | null };
+    return {
+      id: r.id,
+      product_id: r.product_id,
+      company_id: r.company_id,
+      sku: r.sku,
+      packaging: r.packaging,
+      unit: r.unit,
+      weight_grams: r.weight_grams,
+      cost_price: r.cost_price,
+      sale_price: r.sale_price,
+      reseller_price: r.reseller_price,
+      stock_quantity: r.stock_quantity,
+      min_stock: r.min_stock,
+      is_active: r.is_active,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      product_name: r.products?.name ?? '',
+      honey_type: r.products?.honey_type ?? null,
+    };
+  },
+
   async listActive(companyId: string): Promise<ActiveVariant[]> {
     const { data, error } = await supabase
       .from('product_variants')
