@@ -82,6 +82,27 @@ export const salesService = {
     return data as unknown as SaleWithItems;
   },
 
+  async listByCustomer(customerId: string): Promise<SaleWithItems[]> {
+    const { data, error } = await supabase
+      .from('sales')
+      .select(`
+        *,
+        customer:customers(name, type, phone),
+        items:sale_items(
+          *,
+          variant:product_variants(
+            sku, packaging,
+            product:products(name)
+          )
+        )
+      `)
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw new ServiceError('Erro ao buscar compras do cliente.', error);
+    return (data ?? []) as unknown as SaleWithItems[];
+  },
+
   async create(
     companyId: string,
     userId: string,

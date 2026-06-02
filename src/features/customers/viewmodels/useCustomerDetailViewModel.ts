@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { customerService } from '../models/customerService';
+import { salesService } from '@/features/sales/models/salesService';
 import type { CustomerValues } from '../models/customerSchemas';
 
 export function useCustomerDetailViewModel(customerId: string) {
@@ -14,6 +15,23 @@ export function useCustomerDetailViewModel(customerId: string) {
     queryFn: () => customerService.get(customerId),
     staleTime: 30_000,
   });
+
+  const salesQuery = useQuery({
+    queryKey: ['customer-sales', customerId],
+    queryFn: () => salesService.listByCustomer(customerId),
+    staleTime: 30_000,
+  });
+
+  const sales = useMemo(() => salesQuery.data ?? [], [salesQuery.data]);
+
+  const summary = useMemo(() => {
+    const billable = sales.filter((s) => s.status !== 'canceled');
+    const totalSpent = billable.reduce((sum, s) => sum + (s.total ?? 0), 0);
+    const count = billable.length;
+    const avgTicket = count > 0 ? totalSpent / count : 0;
+    const lastPurchaseDate = sales.length > 0 ? new Date(sales[0].created_at) : null;
+    return { totalSpent, count, avgTicket, lastPurchaseDate };
+  }, [sales]);
 
   const updateMutation = useMutation({
     mutationFn: (values: CustomerValues) => customerService.update(customerId, values),
@@ -35,8 +53,11 @@ export function useCustomerDetailViewModel(customerId: string) {
   return {
     customer: query.data ?? null,
     isLoading: query.isLoading,
-    isRefetching: query.isRefetching,
+    isRefetching: query.isRefetching || salesQuery.isRefetching,
     error: query.error,
+    sales,
+    salesLoading: salesQuery.isLoading,
+    summary,
     showEditSheet,
     openEditSheet: () => setShowEditSheet(true),
     closeEditSheet: () => setShowEditSheet(false),
@@ -45,6 +66,9 @@ export function useCustomerDetailViewModel(customerId: string) {
     saveError: updateMutation.error,
     deactivate: deactivateMutation.mutate,
     isDeactivating: deactivateMutation.isPending,
-    refresh: query.refetch,
+    refresh: () => {
+      query.refetch();
+      salesQuery.refetch();
+    },
   };
 }

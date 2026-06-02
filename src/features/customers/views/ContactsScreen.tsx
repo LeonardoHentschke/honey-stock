@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
-  Linking,
+  Dimensions,
 } from 'react-native';
 import { Plus, Search, UserRound, Phone } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,8 @@ import type { Customer } from '../models/customerService';
 import type { ContactsStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<ContactsStackParamList>;
+
+const CARD_WIDTH = (Dimensions.get('window').width - 24 * 2 - 12) / 2;
 
 const TABS: { key: ContactsTab; label: string }[] = [
   { key: 'final', label: 'Final' },
@@ -39,15 +41,6 @@ export function ContactsScreen() {
   const { top } = useSafeAreaInsets();
   const vm = useContactsViewModel();
   const navigation = useNavigation<Nav>();
-
-  // Agrupar em pares para o grid de 2 colunas
-  const rows = useMemo(() => {
-    const result: Customer[][] = [];
-    for (let i = 0; i < vm.customers.length; i += 2) {
-      result.push(vm.customers.slice(i, i + 2));
-    }
-    return result;
-  }, [vm.customers]);
 
   return (
     <View style={styles.root}>
@@ -97,7 +90,7 @@ export function ContactsScreen() {
         <View style={styles.centered}>
           <ActivityIndicator color="#C47C0A" size="large" />
         </View>
-      ) : rows.length === 0 ? (
+      ) : vm.customers.length === 0 ? (
         <View style={styles.flex}>
           <EmptyState
             title={
@@ -110,8 +103,10 @@ export function ContactsScreen() {
         </View>
       ) : (
         <FlatList
-          data={rows}
-          keyExtractor={(_, i) => String(i)}
+          data={vm.customers}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.gridContent}
           refreshControl={
             <RefreshControl
@@ -121,21 +116,11 @@ export function ContactsScreen() {
               colors={['#C47C0A']}
             />
           }
-          renderItem={({ item: pair }) => (
-            <View style={styles.row}>
-              <CustomerCard
-                customer={pair[0]}
-                onPress={() => navigation.navigate('CustomerDetail', { customerId: pair[0].id })}
-              />
-              {pair[1] ? (
-                <CustomerCard
-                  customer={pair[1]}
-                  onPress={() => navigation.navigate('CustomerDetail', { customerId: pair[1].id })}
-                />
-              ) : (
-                <View style={styles.cardPlaceholder} />
-              )}
-            </View>
+          renderItem={({ item }) => (
+            <CustomerCard
+              customer={item}
+              onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
+            />
           )}
         />
       )}
@@ -261,24 +246,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#FFFFFF', borderRadius: 10, height: 44,
     paddingHorizontal: 12, gap: 8,
-    borderWidth: 1, borderColor: '#E7E2D9',
   },
   searchInput: { flex: 1, fontSize: 15, color: '#1F1B16' },
 
   // Grid
-  gridContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  cardPlaceholder: { flex: 1 },
+  gridContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
+  columnWrapper: { justifyContent: 'space-between', marginBottom: 12 },
 
   // Card tile
   card: {
-    flex: 1,
+    width: CARD_WIDTH,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    padding: 16,
+    padding: 14,
     shadowColor: '#1F1B16',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 3,
   },
@@ -286,27 +269,27 @@ const styles = StyleSheet.create({
 
   // Avatar
   avatar: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 56, height: 56, borderRadius: 28,
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   avatarFinal: { backgroundColor: '#FCEFC8' },
   avatarReseller: { backgroundColor: '#E3D0AE' },
-  avatarText: { fontSize: 18, fontWeight: '700' },
+  avatarText: { fontSize: 20, fontWeight: '600' },
   avatarTextFinal: { color: '#9B5F0B' },
   avatarTextReseller: { color: '#7A5A2A' },
 
-  cardName: { fontSize: 15, lineHeight: 21, fontWeight: '700', color: '#1F1B16', marginBottom: 2 },
-  cardSubtitle: { fontSize: 12, lineHeight: 16, color: '#6B6258', marginBottom: 10 },
+  cardName: { fontSize: 15, lineHeight: 21, fontWeight: '600', color: '#1F1B16', marginBottom: 2 },
+  cardSubtitle: { fontSize: 12, lineHeight: 16, color: '#6B6258', marginBottom: 4 },
 
-  divider: { height: 1, backgroundColor: '#E7E2D9', marginBottom: 10 },
+  divider: { height: 1, backgroundColor: '#E7E2D9', opacity: 0.55, marginTop: 4, marginBottom: 8 },
 
   phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   phoneText: { fontSize: 12, lineHeight: 16, color: '#6B6258', flex: 1 },
 
   discountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   discountLabel: { fontSize: 12, lineHeight: 16, color: '#6B6258' },
-  discountValue: { fontSize: 14, lineHeight: 18, fontWeight: '700', color: '#C47C0A' },
+  discountValue: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: '#9B5F0B' },
 
   // Empty state
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },

@@ -12,9 +12,12 @@ import {
 import { Plus, Search, Package, AlertTriangle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useProductListViewModel } from '../viewmodels/useProductListViewModel';
+import {
+  useProductListViewModel,
+  type ProductVariantRow,
+} from '../viewmodels/useProductListViewModel';
 import { ProductFormSheet } from './components/ProductFormSheet';
-import type { ProductWithVariants } from '../models/productService';
+import { ProductTile } from '@/shared/components/ProductTile';
 import { formatCurrency } from '@/shared/lib/format';
 
 export function ProductListScreen() {
@@ -71,14 +74,12 @@ export function ProductListScreen() {
         </View>
       ) : (
         <FlatList
-          data={vm.products}
-          keyExtractor={(item) => item.id}
+          data={vm.variantRows}
+          keyExtractor={(item) => item.variant?.id ?? `product:${item.product.id}`}
           renderItem={({ item }) => (
-            <ProductCard product={item} onPress={() => vm.navigateToDetail(item.id)} />
+            <VariantRow row={item} onPress={() => vm.navigateToDetail(item.product.id)} />
           )}
-          contentContainerStyle={
-            vm.products.length === 0 ? styles.flex : styles.listContent
-          }
+          contentContainerStyle={vm.isEmpty ? styles.flex : styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={vm.isRefetching}
@@ -133,66 +134,64 @@ function FilterChip({
   );
 }
 
-function ProductCard({
-  product,
-  onPress,
-}: {
-  product: ProductWithVariants;
-  onPress: () => void;
-}) {
-  const activeVariants = product.variants.filter((v) => v.is_active);
-  const hasLowStock = activeVariants.some((v) => v.stock_quantity <= v.min_stock);
+function VariantRow({ row, onPress }: { row: ProductVariantRow; onPress: () => void }) {
+  const { product, variant } = row;
+
+  // Produto sem variante ainda: linha tocável que convida a cadastrar a primeira.
+  if (!variant) {
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        onPress={onPress}
+      >
+        <ProductTile name={product.name} honeyType={product.honey_type} size={56} />
+
+        <View style={styles.cardBody}>
+          <Text style={styles.productName} numberOfLines={1}>
+            {product.name}
+          </Text>
+          <Text style={styles.noVariantText} numberOfLines={1}>
+            Sem variante — toque para adicionar
+          </Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  const isLow = variant.stock_quantity <= variant.min_stock;
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderLeft}>
-          <Text style={styles.productName}>{product.name}</Text>
-          {product.honey_type && (
-            <Text style={styles.honeyType}>{product.honey_type}</Text>
-          )}
-        </View>
-        <View style={styles.cardMeta}>
-          <Text style={styles.variantCount}>
-            {activeVariants.length} variante{activeVariants.length !== 1 ? 's' : ''}
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPress}
+    >
+      <ProductTile name={product.name} honeyType={product.honey_type} size={56} />
+
+      <View style={styles.cardBody}>
+        <View style={styles.cardTitleRow}>
+          <Text style={styles.productName} numberOfLines={1}>
+            {product.name}
           </Text>
-          {hasLowStock && (
+          {isLow && (
             <View style={styles.lowStockBadge}>
               <AlertTriangle size={11} color="#C77700" />
-              <Text style={styles.lowStockText}>Estoque baixo</Text>
+              <Text style={styles.lowStockText}>baixo</Text>
             </View>
           )}
         </View>
-      </View>
 
-      {activeVariants.length > 0 && (
-        <View style={styles.variantList}>
-          {activeVariants.map((v, idx) => (
-            <React.Fragment key={v.id}>
-              {idx > 0 && <View style={styles.variantDivider} />}
-              <View style={styles.variantRow}>
-                <View style={styles.variantLeft}>
-                  <Text style={styles.variantName}>{v.packaging ?? v.sku}</Text>
-                  <Text style={styles.variantPrice}>{formatCurrency(v.sale_price)}</Text>
-                </View>
-                <View style={styles.variantRight}>
-                  <Text
-                    style={[
-                      styles.variantStock,
-                      v.stock_quantity <= v.min_stock && styles.variantStockLow,
-                    ]}
-                  >
-                    {v.stock_quantity} {v.unit}
-                  </Text>
-                  {v.stock_quantity <= v.min_stock && v.min_stock > 0 && (
-                    <Text style={styles.variantMinStock}>mín {v.min_stock}</Text>
-                  )}
-                </View>
-              </View>
-            </React.Fragment>
-          ))}
+        <Text style={styles.variantName} numberOfLines={1}>
+          {variant.packaging ?? variant.sku}
+        </Text>
+
+        <View style={styles.metaRow}>
+          <Text style={styles.variantPrice}>{formatCurrency(variant.sale_price)}</Text>
+          <Text style={styles.metaDot}>·</Text>
+          <Text style={[styles.variantStock, isLow && styles.variantStockLow]}>
+            {variant.stock_quantity} {variant.unit}
+          </Text>
         </View>
-      )}
+      </View>
     </Pressable>
   );
 }
@@ -282,52 +281,45 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 24, paddingBottom: 32, gap: 12 },
 
   card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    padding: 16,
-    shadowColor: '#1F1B16',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E7E2D9',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  cardHeaderLeft: { flex: 1, gap: 2 },
-  cardMeta: { alignItems: 'flex-end', gap: 4 },
+  cardPressed: { backgroundColor: '#FDFAF4' },
 
-  productName: { fontSize: 17, lineHeight: 24, fontWeight: '600', color: '#1F1B16' },
-  honeyType: { fontSize: 12, color: '#6B6258' },
-  variantCount: { fontSize: 12, color: '#A89E91' },
+  cardBody: { flex: 1, minWidth: 0, gap: 2 },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+  productName: {
+    flexShrink: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: '#1F1B16',
+  },
   lowStockBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#FFF8E1',
+    backgroundColor: '#FBEAD0',
     paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingVertical: 2,
+    borderRadius: 9999,
   },
   lowStockText: { fontSize: 11, color: '#C77700', fontWeight: '600' },
 
-  variantList: { gap: 0 },
-  variantDivider: { height: 1, backgroundColor: '#F5F1EA', marginVertical: 8 },
-  variantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  variantLeft: { gap: 1 },
-  variantRight: { alignItems: 'flex-end', gap: 1 },
-  variantName: { fontSize: 13, color: '#3B342B', fontWeight: '500' },
-  variantPrice: { fontSize: 13, color: '#6B6258' },
-  variantStock: { fontSize: 13, color: '#3B342B', fontWeight: '500' },
-  variantStockLow: { color: '#C77700' },
-  variantMinStock: { fontSize: 11, color: '#A89E91' },
+  variantName: { fontSize: 12, lineHeight: 16, color: '#6B6258' },
+  noVariantText: { fontSize: 12, lineHeight: 16, color: '#A89E91', fontStyle: 'italic', marginTop: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  metaDot: { fontSize: 12, color: '#A89E91' },
+  variantPrice: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: '#1F1B16' },
+  variantStock: { fontSize: 12, color: '#6B6258' },
+  variantStockLow: { color: '#C77700', fontWeight: '600' },
 
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyIconWrap: {
