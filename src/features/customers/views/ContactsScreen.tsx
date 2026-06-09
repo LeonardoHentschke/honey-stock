@@ -8,7 +8,6 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { Plus, Search, UserRound, Phone } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,7 +21,8 @@ import type { ContactsStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<ContactsStackParamList>;
 
-const CARD_WIDTH = (Dimensions.get('window').width - 24 * 2 - 12) / 2;
+/** Item do grid: cliente real ou espaçador invisível (mantém card ímpar com metade da largura). */
+type GridItem = Customer | { id: '__spacer__'; spacer: true };
 
 const TABS: { key: ContactsTab; label: string }[] = [
   { key: 'final', label: 'Final' },
@@ -102,8 +102,12 @@ export function ContactsScreen() {
           />
         </View>
       ) : (
-        <FlatList
-          data={vm.customers}
+        <FlatList<GridItem>
+          data={
+            vm.customers.length % 2 === 1
+              ? [...vm.customers, { id: '__spacer__', spacer: true }]
+              : vm.customers
+          }
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
@@ -116,12 +120,16 @@ export function ContactsScreen() {
               colors={['#C47C0A']}
             />
           }
-          renderItem={({ item }) => (
-            <CustomerCard
-              customer={item}
-              onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
-            />
-          )}
+          renderItem={({ item }) =>
+            'spacer' in item ? (
+              <View style={styles.cardSpacer} />
+            ) : (
+              <CustomerCard
+                customer={item}
+                onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
+              />
+            )
+          }
         />
       )}
 
@@ -150,7 +158,8 @@ function CustomerCard({
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={styles.card}
+      android_ripple={{ color: '#FDFAF4' }}
       onPress={onPress}
     >
       <View style={[styles.avatar, isReseller ? styles.avatarReseller : styles.avatarFinal]}>
@@ -251,11 +260,12 @@ const styles = StyleSheet.create({
 
   // Grid
   gridContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
-  columnWrapper: { justifyContent: 'space-between', marginBottom: 12 },
+  columnWrapper: { gap: 12, marginBottom: 12 },
+  cardSpacer: { flex: 1 },
 
   // Card tile
   card: {
-    width: CARD_WIDTH,
+    flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,

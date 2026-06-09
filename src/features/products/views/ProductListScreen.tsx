@@ -12,13 +12,12 @@ import {
 import { Plus, Search, Package, AlertTriangle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  useProductListViewModel,
-  type ProductVariantRow,
-} from '../viewmodels/useProductListViewModel';
+import { useProductListViewModel } from '../viewmodels/useProductListViewModel';
 import { ProductFormSheet } from './components/ProductFormSheet';
+import { StockMovementSheet } from '@/features/inventory/views/components/StockMovementSheet';
 import { ProductTile } from '@/shared/components/ProductTile';
-import { formatCurrency } from '@/shared/lib/format';
+import { formatCurrency, formatQuantity } from '@/shared/lib/format';
+import type { Product } from '../models/productService';
 
 export function ProductListScreen() {
   const { top } = useSafeAreaInsets();
@@ -46,7 +45,7 @@ export function ProductListScreen() {
             style={styles.searchInput}
             value={vm.search}
             onChangeText={vm.setSearch}
-            placeholder="Buscar produto ou SKU..."
+            placeholder="Buscar produto..."
             placeholderTextColor="#A89E91"
             returnKeyType="search"
             clearButtonMode="while-editing"
@@ -74,10 +73,14 @@ export function ProductListScreen() {
         </View>
       ) : (
         <FlatList
-          data={vm.variantRows}
-          keyExtractor={(item) => item.variant?.id ?? `product:${item.product.id}`}
+          data={vm.products}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <VariantRow row={item} onPress={() => vm.navigateToDetail(item.product.id)} />
+            <ProductRow
+              product={item}
+              onPress={() => vm.navigateToDetail(item.id)}
+              onAddStock={() => vm.openStockEntry(item)}
+            />
           )}
           contentContainerStyle={vm.isEmpty ? styles.flex : styles.listContent}
           refreshControl={
@@ -104,6 +107,19 @@ export function ProductListScreen() {
         onSuccess={() => vm.refresh()}
         onClose={() => vm.setShowCreateSheet(false)}
       />
+
+      {/* ── Entrada de estoque (botão + da linha) ──────────── */}
+      {vm.stockProduct && (
+        <StockMovementSheet
+          visible
+          productId={vm.stockProduct.id}
+          companyId={vm.companyId}
+          productLabel={vm.stockProduct.name}
+          currentStock={vm.stockProduct.stock_quantity}
+          onSuccess={vm.refresh}
+          onClose={vm.closeStockEntry}
+        />
+      )}
     </View>
   );
 }
@@ -134,38 +150,24 @@ function FilterChip({
   );
 }
 
-function VariantRow({ row, onPress }: { row: ProductVariantRow; onPress: () => void }) {
-  const { product, variant } = row;
-
-  // Produto sem variante ainda: linha tocável que convida a cadastrar a primeira.
-  if (!variant) {
-    return (
-      <Pressable
-        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-        onPress={onPress}
-      >
-        <ProductTile name={product.name} honeyType={product.honey_type} size={56} />
-
-        <View style={styles.cardBody}>
-          <Text style={styles.productName} numberOfLines={1}>
-            {product.name}
-          </Text>
-          <Text style={styles.noVariantText} numberOfLines={1}>
-            Sem variante — toque para adicionar
-          </Text>
-        </View>
-      </Pressable>
-    );
-  }
-
-  const isLow = variant.stock_quantity <= variant.min_stock;
+function ProductRow({
+  product,
+  onPress,
+  onAddStock,
+}: {
+  product: Product;
+  onPress: () => void;
+  onAddStock: () => void;
+}) {
+  const isLow = product.stock_quantity <= product.min_stock && product.min_stock > 0;
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={styles.card}
+      android_ripple={{ color: '#FDFAF4' }}
       onPress={onPress}
     >
-      <ProductTile name={product.name} honeyType={product.honey_type} size={56} />
+      <ProductTile name={product.name} size={56} />
 
       <View style={styles.cardBody}>
         <View style={styles.cardTitleRow}>
@@ -174,24 +176,28 @@ function VariantRow({ row, onPress }: { row: ProductVariantRow; onPress: () => v
           </Text>
           {isLow && (
             <View style={styles.lowStockBadge}>
-              <AlertTriangle size={11} color="#C77700" />
               <Text style={styles.lowStockText}>baixo</Text>
             </View>
           )}
         </View>
 
-        <Text style={styles.variantName} numberOfLines={1}>
-          {variant.packaging ?? variant.sku}
-        </Text>
-
         <View style={styles.metaRow}>
-          <Text style={styles.variantPrice}>{formatCurrency(variant.sale_price)}</Text>
+          <Text style={styles.variantPrice}>{formatCurrency(product.sale_price)}</Text>
           <Text style={styles.metaDot}>·</Text>
           <Text style={[styles.variantStock, isLow && styles.variantStockLow]}>
-            {variant.stock_quantity} {variant.unit}
+            {formatQuantity(product.stock_quantity, 'un')}
           </Text>
         </View>
       </View>
+
+      <Pressable
+        style={styles.addStockBtn}
+        onPress={onAddStock}
+        accessibilityLabel={`Adicionar estoque de ${product.name}`}
+        hitSlop={6}
+      >
+        <Plus size={20} color="#FFFFFF" />
+      </Pressable>
     </Pressable>
   );
 }
@@ -291,6 +297,20 @@ const styles = StyleSheet.create({
     borderColor: '#E7E2D9',
   },
   cardPressed: { backgroundColor: '#FDFAF4' },
+
+  addStockBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E89B12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#E89B12',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
 
   cardBody: { flex: 1, minWidth: 0, gap: 2 },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

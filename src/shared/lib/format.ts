@@ -25,7 +25,8 @@ const DATETIME_FORMATTER = new Intl.DateTimeFormat('pt-BR', {
 
 /** R$ 1.234,56 */
 export function formatCurrency(value: number): string {
-  return BRL_FORMATTER.format(value);
+  const n = Number(value);
+  return BRL_FORMATTER.format(Number.isFinite(n) ? n : 0);
 }
 
 /** 25/05/2026 */
@@ -49,10 +50,12 @@ export function formatWeight(grams: number): string {
 
 /** "24 un" ou "2,5 kg" */
 export function formatQuantity(quantity: number, unit: string): string {
+  const n = Number(quantity);
+  const q = Number.isFinite(n) ? n : 0;
   if (unit === 'kg') {
-    return `${quantity % 1 === 0 ? quantity.toFixed(0) : quantity.toFixed(3).replace(/\.?0+$/, '')} kg`;
+    return `${q % 1 === 0 ? q.toFixed(0) : q.toFixed(3).replace(/\.?0+$/, '')} kg`;
   }
-  return `${Math.floor(quantity)} un`;
+  return `${Math.floor(q)} un`;
 }
 
 /** Tempo relativo simples: "em 2h", "amanhã", "há 3 dias" */
