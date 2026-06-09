@@ -15,8 +15,8 @@ import { CartesianChart, Line, Bar } from 'victory-native';
 import { formatCurrency } from '@/shared/lib/format';
 import { SectionHeader } from '@/components/ui/section-header';
 import { useReportsViewModel, type PeriodOption } from '../viewmodels/useReportsViewModel';
-import type { BreakdownRow, SalesByDayPoint, TopVariantPoint } from '../viewmodels/useReportsViewModel';
-import type { LowStockVariant } from '../models/reportsService';
+import type { BreakdownRow, SalesByDayPoint, TopProductPoint } from '../viewmodels/useReportsViewModel';
+import type { LowStockProduct } from '../models/reportsService';
 
 const PERIODS: { key: PeriodOption; label: string }[] = [
   { key: '7d', label: '7 dias' },
@@ -115,10 +115,10 @@ export function ReportsScreen() {
             {'  '}Top 5 produtos
           </SectionHeader>
           <View style={styles.card}>
-            {vm.topVariants.length > 0 ? (
+            {vm.topProducts.length > 0 ? (
               <>
                 <CartesianChart
-                  data={vm.topVariants}
+                  data={vm.topProducts}
                   xKey="index"
                   yKeys={['qty']}
                   domainPadding={{ left: 20, right: 20, top: 20 }}
@@ -132,7 +132,7 @@ export function ReportsScreen() {
                     />
                   )}
                 </CartesianChart>
-                <BarLegend items={vm.topVariants} />
+                <BarLegend items={vm.topProducts} />
               </>
             ) : (
               <EmptyChart message="Nenhuma venda com produtos no período." />
@@ -165,10 +165,10 @@ export function ReportsScreen() {
             {'  '}Estoque crítico
           </SectionHeader>
           <View style={styles.card}>
-            {vm.lowStockVariants.length > 0 ? (
-              vm.lowStockVariants.map((v) => <StockRow key={v.sku} variant={v} />)
+            {vm.lowStockProducts.length > 0 ? (
+              vm.lowStockProducts.map((p, i) => <StockRow key={`${p.product_name}-${i}`} product={p} />)
             ) : (
-              <Text style={styles.emptyTextGreen}>Nenhuma variante em nível crítico.</Text>
+              <Text style={styles.emptyTextGreen}>Nenhum produto em nível crítico.</Text>
             )}
           </View>
         </ScrollView>
@@ -207,16 +207,15 @@ function PercentRow({ row }: { row: BreakdownRow }) {
   );
 }
 
-function StockRow({ variant }: { variant: LowStockVariant }) {
+function StockRow({ product }: { product: LowStockProduct }) {
   return (
     <View style={styles.stockRow}>
       <View style={styles.stockInfo}>
-        <Text style={styles.stockName} numberOfLines={1}>{variant.product_name}</Text>
-        <Text style={styles.stockSku}>{variant.sku}</Text>
+        <Text style={styles.stockName} numberOfLines={1}>{product.product_name}</Text>
       </View>
       <View style={styles.stockBadge}>
         <Text style={styles.stockBadgeText}>
-          {variant.stock_quantity} / {variant.min_stock}
+          {product.stock_quantity} / {product.min_stock}
         </Text>
       </View>
     </View>
@@ -236,7 +235,7 @@ function ChartXLabels({ points }: { points: SalesByDayPoint[] }) {
   );
 }
 
-function BarLegend({ items }: { items: TopVariantPoint[] }) {
+function BarLegend({ items }: { items: TopProductPoint[] }) {
   return (
     <View style={styles.barLegend}>
       {items.map((item, i) => (

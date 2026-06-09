@@ -26,7 +26,6 @@ export type AppTabsParamList = {
 export type MoreStackParamList = {
   MoreHome: undefined;
   Batches: undefined;
-  Categories: undefined;
   Reminders: undefined;
   ReminderDetail: { reminderId: string };
   Reports: undefined;
@@ -43,7 +42,6 @@ export type MoreStackParamList = {
 export type ProductsStackParamList = {
   ProductList: undefined;
   ProductDetail: { productId: string };
-  VariantDetail: { variantId: string };
 };
 
 // ─── Sales Stack ──────────────────────────────────────────────────────────────

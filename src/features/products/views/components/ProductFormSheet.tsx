@@ -11,13 +11,13 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Controller } from 'react-hook-form';
+import { Controller, type Control } from 'react-hook-form';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProductFormViewModel } from '../../viewmodels/useProductFormViewModel';
 import type { Product } from '../../models/productService';
-import { HONEY_TYPES } from '../../models/productSchemas';
+import type { CreateProductValues } from '../../models/productSchemas';
 
 interface Props {
   visible: boolean;
@@ -77,7 +77,7 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder="Ex: Mel silvestre"
+                    placeholder="Ex: Mel 500g"
                     placeholderTextColor="#A89E91"
                     autoCapitalize="words"
                   />
@@ -88,57 +88,45 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
               )}
             />
 
-            {/* Tipo de mel */}
-            <Controller
-              control={vm.control}
-              name="honey_type"
-              render={({ field: { onChange, value } }) => (
-                <View style={styles.field}>
-                  <Text style={styles.label}>Tipo de mel</Text>
-                  <View style={styles.chipRow}>
-                    {HONEY_TYPES.map((t) => (
-                      <Pressable
-                        key={t}
-                        style={[styles.chip, value === t && styles.chipActive]}
-                        onPress={() => onChange(value === t ? null : t)}
-                      >
-                        <Text style={[styles.chipText, value === t && styles.chipTextActive]}>
-                          {t}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              )}
-            />
-
-            {/* Categoria */}
-            {vm.categories.length > 0 && (
-              <Controller
+            {/* Preço de venda + custo */}
+            <View style={styles.row}>
+              <NumberField
                 control={vm.control}
-                name="category_id"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.field}>
-                    <Text style={styles.label}>Categoria</Text>
-                    <View style={styles.chipRow}>
-                      {vm.categories.map((c) => (
-                        <Pressable
-                          key={c.id}
-                          style={[styles.chip, value === c.id && styles.chipActive]}
-                          onPress={() => onChange(value === c.id ? null : c.id)}
-                        >
-                          <Text
-                            style={[styles.chipText, value === c.id && styles.chipTextActive]}
-                          >
-                            {c.name}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </View>
-                )}
+                name="sale_price"
+                label="Preço de venda *"
+                placeholder="0,00"
+                prefix="R$"
+                error={vm.errors.sale_price?.message}
               />
-            )}
+              <NumberField
+                control={vm.control}
+                name="cost_price"
+                label="Custo"
+                placeholder="0,00"
+                prefix="R$"
+                error={vm.errors.cost_price?.message}
+              />
+            </View>
+
+            {/* Estoque (só no cadastro) + mínimo */}
+            <View style={styles.row}>
+              {mode === 'create' && (
+                <NumberField
+                  control={vm.control}
+                  name="stock_quantity"
+                  label="Estoque inicial"
+                  placeholder="0"
+                  error={vm.errors.stock_quantity?.message}
+                />
+              )}
+              <NumberField
+                control={vm.control}
+                name="min_stock"
+                label="Estoque mínimo"
+                placeholder="0"
+                error={vm.errors.min_stock?.message}
+              />
+            </View>
 
             {/* Descrição */}
             <Controller
@@ -187,6 +175,53 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
   );
 }
 
+// ─── Campo numérico ────────────────────────────────────────────────────────
+
+function NumberField({
+  control,
+  name,
+  label,
+  placeholder,
+  prefix,
+  error,
+}: {
+  control: Control<CreateProductValues>;
+  name: 'sale_price' | 'cost_price' | 'stock_quantity' | 'min_stock';
+  label: string;
+  placeholder: string;
+  prefix?: string;
+  error?: string;
+}) {
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field: { onChange, onBlur, value } }) => (
+        <View style={[styles.field, styles.flex]}>
+          <Text style={styles.label}>{label}</Text>
+          <View style={[styles.inputWrap, error && styles.inputError]}>
+            {prefix && <Text style={styles.prefix}>{prefix}</Text>}
+            <TextInput
+              style={styles.inputInner}
+              value={value ? String(value).replace('.', ',') : ''}
+              onChangeText={(t) => {
+                const normalized = t.replace(/[^0-9,.]/g, '').replace(',', '.');
+                const num = parseFloat(normalized);
+                onChange(isNaN(num) ? 0 : num);
+              }}
+              onBlur={onBlur}
+              placeholder={placeholder}
+              placeholderTextColor="#A89E91"
+              keyboardType="decimal-pad"
+            />
+          </View>
+          {error && <Text style={styles.errorText}>{error}</Text>}
+        </View>
+      )}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: '#F5F1EA' },
@@ -212,6 +247,7 @@ const styles = StyleSheet.create({
   },
 
   content: { padding: 24, gap: 20, paddingBottom: 16 },
+  row: { flexDirection: 'row', gap: 12 },
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: '500', color: '#3B342B' },
   input: {
@@ -224,6 +260,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1F1B16',
   },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E7E2D9',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    gap: 6,
+  },
+  prefix: { fontSize: 15, color: '#A89E91' },
+  inputInner: { flex: 1, fontSize: 15, color: '#1F1B16' },
   inputError: { borderColor: '#B3261E' },
   textarea: { height: 80, paddingTop: 12 },
   errorText: { fontSize: 12, color: '#B3261E' },
@@ -234,19 +283,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
   },
-
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E7E2D9',
-    backgroundColor: '#FFFFFF',
-  },
-  chipActive: { borderColor: '#C47C0A', backgroundColor: '#FCEFC8' },
-  chipText: { fontSize: 13, color: '#6B6258' },
-  chipTextActive: { color: '#9B5F0B', fontWeight: '600' },
 
   footer: {
     paddingHorizontal: 24,

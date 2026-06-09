@@ -14,17 +14,13 @@ export interface Sale extends SaleRow {
   customer: { name: string; type: string } | null;
 }
 
-export interface SaleItemWithVariant extends SaleItemRow {
-  variant: {
-    sku: string;
-    packaging: string | null;
-    product: { name: string } | null;
-  } | null;
+export interface SaleItemWithProduct extends SaleItemRow {
+  product: { name: string } | null;
 }
 
 export interface SaleWithItems extends SaleRow {
   customer: { name: string; type: string; phone: string | null } | null;
-  items: SaleItemWithVariant[];
+  items: SaleItemWithProduct[];
 }
 
 export const CHANNEL_LABELS: Record<SaleChannel, string> = {
@@ -70,10 +66,7 @@ export const salesService = {
         customer:customers(name, type, phone),
         items:sale_items(
           *,
-          variant:product_variants(
-            sku, packaging,
-            product:products(name)
-          )
+          product:products(name)
         )
       `)
       .eq('id', id)
@@ -90,10 +83,7 @@ export const salesService = {
         customer:customers(name, type, phone),
         items:sale_items(
           *,
-          variant:product_variants(
-            sku, packaging,
-            product:products(name)
-          )
+          product:products(name)
         )
       `)
       .eq('customer_id', customerId)
@@ -130,7 +120,7 @@ export const salesService = {
 
     const saleItems = input.items.map((item) => ({
       sale_id: sale.id,
-      variant_id: item.variantId,
+      product_id: item.productId,
       batch_id: item.batchId ?? null,
       quantity: item.quantity,
       unit_price: item.unitPrice,
@@ -176,7 +166,7 @@ export const salesService = {
 
     const saleItems = input.items.map((item) => ({
       sale_id: sale.id,
-      variant_id: item.variantId,
+      product_id: item.productId,
       batch_id: item.batchId ?? null,
       quantity: item.quantity,
       unit_price: item.unitPrice,

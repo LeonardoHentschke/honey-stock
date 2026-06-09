@@ -116,8 +116,8 @@ export function DashboardScreen() {
             title="Estoque baixo"
             subtitle={
               vm.lowStockCount > 0
-                ? `${vm.lowStockCount} variante${vm.lowStockCount > 1 ? 's' : ''} precisam reposição`
-                : 'Nenhuma variante em baixo estoque'
+                ? `${vm.lowStockCount} produto${vm.lowStockCount > 1 ? 's' : ''} precisam reposição`
+                : 'Nenhum produto em baixo estoque'
             }
           />
           <CardRow

@@ -18,7 +18,7 @@ import { formatCurrency } from '@/shared/lib/format';
 import { useNewSaleViewModel } from '../viewmodels/useNewSaleViewModel';
 import { CHANNEL_LABELS, PAYMENT_LABELS, type SaleChannel, type PaymentMethod } from '../models/salesService';
 import { CartItemRow } from './components/CartItemRow';
-import { VariantSearchSheet } from './components/VariantSearchSheet';
+import { ProductSearchSheet } from './components/ProductSearchSheet';
 import { CustomerSelectorSheet } from './components/CustomerSelectorSheet';
 import { OptionPickerSheet } from './components/OptionPickerSheet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -46,7 +46,7 @@ export function NewSaleScreen({ navigation }: Props) {
   const { top, bottom } = useSafeAreaInsets();
   const vm = useNewSaleViewModel();
 
-  const [showVariantSheet, setShowVariantSheet] = useState(false);
+  const [showProductSheet, setShowProductSheet] = useState(false);
   const [showCustomerSheet, setShowCustomerSheet] = useState(false);
   const [showChannelSheet, setShowChannelSheet] = useState(false);
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
@@ -104,7 +104,7 @@ export function NewSaleScreen({ navigation }: Props) {
       </View>
 
       {/* Botão de busca de produto */}
-      <Pressable style={styles.searchBar} onPress={() => setShowVariantSheet(true)}>
+      <Pressable style={styles.searchBar} onPress={() => setShowProductSheet(true)}>
         <Search size={18} color="#A89E91" />
         <Text style={styles.searchPlaceholder}>Adicionar produto...</Text>
       </Pressable>
@@ -126,7 +126,7 @@ export function NewSaleScreen({ navigation }: Props) {
         ) : (
           <View style={styles.cartList}>
             {vm.cartItems.map((item) => (
-              <CartItemRow key={item.variantId} item={item} onUpdateQty={vm.updateQty} />
+              <CartItemRow key={item.productId} item={item} onUpdateQty={vm.updateQty} />
             ))}
           </View>
         )}
@@ -243,16 +243,16 @@ export function NewSaleScreen({ navigation }: Props) {
       </View>
 
       {/* Sheets */}
-      <VariantSearchSheet
-        visible={showVariantSheet}
-        variants={vm.filteredVariants}
-        isLoading={vm.isLoadingVariants}
-        query={vm.variantQuery}
-        onQueryChange={vm.setVariantQuery}
+      <ProductSearchSheet
+        visible={showProductSheet}
+        products={vm.filteredProducts}
+        isLoading={vm.isLoadingProducts}
+        query={vm.productQuery}
+        onQueryChange={vm.setProductQuery}
         onSelect={vm.addToCart}
         onClose={() => {
-          setShowVariantSheet(false);
-          vm.setVariantQuery('');
+          setShowProductSheet(false);
+          vm.setProductQuery('');
         }}
       />
 

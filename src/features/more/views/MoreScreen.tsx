@@ -16,7 +16,6 @@ import {
   LogOut,
   ChevronRight,
   Tags,
-  Tag,
   User,
   Copy,
   Building2,
@@ -125,12 +124,6 @@ export function MoreScreen() {
           label: 'Lotes de produção',
           subtitle: 'Rastreabilidade por envase',
           onPress: () => navigation.navigate('Batches'),
-        },
-        {
-          Icon: Tag,
-          label: 'Categoria',
-          subtitle: 'Organizar produtos',
-          onPress: () => navigation.navigate('Categories'),
         },
         {
           Icon: Truck,

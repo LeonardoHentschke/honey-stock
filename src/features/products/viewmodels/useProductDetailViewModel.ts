@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { productService, type ProductWithVariants } from '../models/productService';
+import { productService, type Product } from '../models/productService';
+import { inventoryService } from '@/features/inventory/models/inventoryService';
 import { humanizeError } from '@/shared/lib/errors';
 import type { ProductsStackParamList } from '@/navigation/types';
 
@@ -15,13 +16,18 @@ export function useProductDetailViewModel(productId: string) {
   const queryClient = useQueryClient();
 
   const [showEditSheet, setShowEditSheet] = useState(false);
-  const [showVariantSheet, setShowVariantSheet] = useState(false);
-  const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
+  const [showMovementSheet, setShowMovementSheet] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
-  const query = useQuery<ProductWithVariants, Error>({
+  const query = useQuery<Product, Error>({
     queryKey: ['product', productId],
     queryFn: () => productService.get(productId),
+    staleTime: 30_000,
+  });
+
+  const movementsQuery = useQuery({
+    queryKey: ['movements', productId],
+    queryFn: () => inventoryService.listMovements(productId),
     staleTime: 30_000,
   });
 
@@ -36,31 +42,27 @@ export function useProductDetailViewModel(productId: string) {
 
   return {
     product: query.data ?? null,
+    movements: movementsQuery.data ?? [],
     isLoading: query.isLoading,
-    isRefetching: query.isRefetching,
+    isRefetching: query.isRefetching || movementsQuery.isRefetching,
     error: query.error,
     mutationError,
     showEditSheet,
-    showVariantSheet,
-    editingVariantId,
-    refresh: query.refetch,
+    showMovementSheet,
+    companyId: profile?.company_id ?? '',
+    refresh: () => {
+      query.refetch();
+      movementsQuery.refetch();
+    },
     openEditSheet: () => setShowEditSheet(true),
     closeEditSheet: () => setShowEditSheet(false),
-    openCreateVariantSheet: () => {
-      setEditingVariantId(null);
-      setShowVariantSheet(true);
-    },
-    openEditVariantSheet: (variantId: string) => {
-      setEditingVariantId(variantId);
-      setShowVariantSheet(true);
-    },
-    closeVariantSheet: () => {
-      setShowVariantSheet(false);
-      setEditingVariantId(null);
-    },
+    openMovementSheet: () => setShowMovementSheet(true),
+    closeMovementSheet: () => setShowMovementSheet(false),
     onSheetSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      queryClient.invalidateQueries({ queryKey: ['movements', productId] });
       queryClient.invalidateQueries({ queryKey: ['products', profile?.company_id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
     deactivateProduct: () => deactivateMutation.mutate(),
     isDeactivating: deactivateMutation.isPending,

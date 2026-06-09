@@ -22,11 +22,10 @@ type MovementMode = 'entry' | 'exit' | 'adjust';
 
 interface Props {
   visible: boolean;
-  variantId: string;
+  productId: string;
   companyId: string;
-  variantLabel: string;
+  productLabel: string;
   currentStock: number;
-  unit: string;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -38,7 +37,7 @@ const TABS: { mode: MovementMode; label: string; Icon: React.ComponentType<{ siz
 ];
 
 export function StockMovementSheet({
-  visible, variantId, companyId, variantLabel, currentStock, unit, onSuccess, onClose,
+  visible, productId, companyId, productLabel, currentStock, onSuccess, onClose,
 }: Props) {
   const { bottom } = useSafeAreaInsets();
   const [mode, setMode] = useState<MovementMode>('entry');
@@ -55,7 +54,7 @@ export function StockMovementSheet({
         <View style={styles.header}>
           <View style={styles.flex}>
             <Text style={styles.title}>Movimentar estoque</Text>
-            <Text style={styles.subtitle}>{variantLabel}</Text>
+            <Text style={styles.subtitle}>{productLabel}</Text>
           </View>
           <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
             <X size={20} color="#6B6258" />
@@ -66,7 +65,7 @@ export function StockMovementSheet({
         <View style={styles.stockBanner}>
           <Text style={styles.stockLabel}>Estoque atual</Text>
           <Text style={styles.stockValue}>
-            {formatQuantity(currentStock, unit)}
+            {formatQuantity(currentStock, 'un')}
           </Text>
         </View>
 
@@ -90,10 +89,9 @@ export function StockMovementSheet({
         <MovementForm
           key={mode}
           mode={mode}
-          variantId={variantId}
+          productId={productId}
           companyId={companyId}
           currentStock={currentStock}
-          unit={unit}
           bottom={bottom}
           onSuccess={() => { onSuccess(); onClose(); }}
         />
@@ -105,17 +103,16 @@ export function StockMovementSheet({
 // ─── Form ────────────────────────────────────────────────────────────────────
 
 function MovementForm({
-  mode, variantId, companyId, currentStock, unit, bottom, onSuccess,
+  mode, productId, companyId, currentStock, bottom, onSuccess,
 }: {
   mode: MovementMode;
-  variantId: string;
+  productId: string;
   companyId: string;
   currentStock: number;
-  unit: string;
   bottom: number;
   onSuccess: () => void;
 }) {
-  const vm = useStockMovementViewModel({ variantId, companyId, mode, onSuccess });
+  const vm = useStockMovementViewModel({ productId, companyId, mode, onSuccess });
 
   return (
     <KeyboardAvoidingView
@@ -130,7 +127,7 @@ function MovementForm({
         {mode === 'adjust' && (
           <View style={styles.adjustWarning}>
             <Text style={styles.adjustWarningText}>
-              O ajuste substitui o estoque atual ({formatQuantity(currentStock, unit)}) pelo novo valor.
+              O ajuste substitui o estoque atual ({formatQuantity(currentStock, 'un')}) pelo novo valor.
             </Text>
           </View>
         )}
@@ -150,7 +147,7 @@ function MovementForm({
                   value={value === 0 ? '' : String(value)}
                   onChangeText={(t) => onChange(parseFloat(t.replace(',', '.')) || 0)}
                   onBlur={onBlur}
-                  placeholder={`Ex: 10 ${unit}`}
+                  placeholder="Ex: 10 un"
                   placeholderTextColor="#A89E91"
                   keyboardType="decimal-pad"
                 />
@@ -172,7 +169,7 @@ function MovementForm({
                   value={value === 0 ? '' : String(value)}
                   onChangeText={(t) => onChange(parseFloat(t.replace(',', '.')) || 0)}
                   onBlur={onBlur}
-                  placeholder={`Ex: 15 ${unit}`}
+                  placeholder="Ex: 15 un"
                   placeholderTextColor="#A89E91"
                   keyboardType="decimal-pad"
                 />

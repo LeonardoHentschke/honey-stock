@@ -12,22 +12,22 @@ import {
   Platform,
 } from 'react-native';
 import { X, Search, Package } from 'lucide-react-native';
-import { formatCurrency } from '@/shared/lib/format';
-import type { ActiveVariant } from '@/features/products/models/variantService';
+import { formatCurrency, formatQuantity } from '@/shared/lib/format';
+import type { Product } from '@/features/products/models/productService';
 
 interface Props {
   visible: boolean;
-  variants: ActiveVariant[];
+  products: Product[];
   isLoading: boolean;
   query: string;
   onQueryChange: (q: string) => void;
-  onSelect: (variant: ActiveVariant) => void;
+  onSelect: (product: Product) => void;
   onClose: () => void;
 }
 
-export function VariantSearchSheet({
+export function ProductSearchSheet({
   visible,
-  variants,
+  products,
   isLoading,
   query,
   onQueryChange,
@@ -61,7 +61,7 @@ export function VariantSearchSheet({
               style={styles.searchInput}
               value={query}
               onChangeText={onQueryChange}
-              placeholder="Buscar por nome, SKU ou embalagem..."
+              placeholder="Buscar por nome..."
               placeholderTextColor="#A89E91"
               autoFocus
               clearButtonMode="while-editing"
@@ -75,13 +75,13 @@ export function VariantSearchSheet({
           </View>
         ) : (
           <FlatList
-            data={variants}
+            data={products}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={variants.length === 0 ? styles.flex : styles.list}
+            contentContainerStyle={products.length === 0 ? styles.flex : styles.list}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
-              <VariantRow
-                variant={item}
+              <ProductRow
+                product={item}
                 onPress={() => {
                   onSelect(item);
                   onClose();
@@ -106,8 +106,8 @@ export function VariantSearchSheet({
   );
 }
 
-function VariantRow({ variant, onPress }: { variant: ActiveVariant; onPress: () => void }) {
-  const outOfStock = variant.stock_quantity <= 0;
+function ProductRow({ product, onPress }: { product: Product; onPress: () => void }) {
+  const outOfStock = product.stock_quantity <= 0;
   return (
     <Pressable
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed, outOfStock && styles.rowDim]}
@@ -116,18 +116,13 @@ function VariantRow({ variant, onPress }: { variant: ActiveVariant; onPress: () 
     >
       <View style={styles.rowInfo}>
         <Text style={styles.rowName} numberOfLines={1}>
-          {variant.product_name}
-          {variant.honey_type ? ` · ${variant.honey_type}` : ''}
+          {product.name}
         </Text>
-        {variant.packaging ? (
-          <Text style={styles.rowSub}>{variant.packaging}</Text>
-        ) : null}
-        <Text style={styles.rowSku}>{variant.sku}</Text>
       </View>
       <View style={styles.rowRight}>
-        <Text style={styles.rowPrice}>{formatCurrency(variant.sale_price)}</Text>
+        <Text style={styles.rowPrice}>{formatCurrency(product.sale_price)}</Text>
         <Text style={[styles.rowStock, outOfStock && styles.rowStockOut]}>
-          {outOfStock ? 'Sem estoque' : `${variant.stock_quantity} ${variant.unit}`}
+          {outOfStock ? 'Sem estoque' : formatQuantity(product.stock_quantity, 'un')}
         </Text>
       </View>
     </Pressable>
@@ -185,8 +180,6 @@ const styles = StyleSheet.create({
   rowDim: { opacity: 0.5 },
   rowInfo: { flex: 1, gap: 2 },
   rowName: { fontSize: 15, fontWeight: '600', color: '#1F1B16' },
-  rowSub: { fontSize: 13, color: '#6B6258' },
-  rowSku: { fontSize: 12, color: '#A89E91' },
   rowRight: { alignItems: 'flex-end', gap: 2, marginLeft: 12 },
   rowPrice: { fontSize: 16, fontWeight: '700', color: '#C47C0A' },
   rowStock: { fontSize: 12, color: '#6B6258' },

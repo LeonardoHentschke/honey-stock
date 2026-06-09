@@ -20,7 +20,7 @@ import {
   type SaleStatus,
   type SaleChannel,
   type PaymentMethod,
-  type SaleItemWithVariant,
+  type SaleItemWithProduct,
 } from '../models/salesService';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { SalesStackParamList } from '@/navigation/types';
@@ -93,7 +93,7 @@ export function SaleDetailScreen({ route, navigation }: Props) {
   const status = sale.status as SaleStatus;
   const statusColors = STATUS_COLORS[status];
   const customer = sale.customer as { name: string; type: string; phone: string | null } | null;
-  const items = (sale.items ?? []) as SaleItemWithVariant[];
+  const items = (sale.items ?? []) as SaleItemWithProduct[];
   const isCancelable = status === 'scheduled' || status === 'completed';
   const isDeliverable = status === 'scheduled';
 
@@ -162,11 +162,8 @@ export function SaleDetailScreen({ route, navigation }: Props) {
               <View style={styles.itemRow}>
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>
-                    {item.variant?.product?.name ?? 'Produto'}
+                    {item.product?.name ?? 'Produto'}
                   </Text>
-                  {item.variant?.packaging ? (
-                    <Text style={styles.itemSub}>{item.variant.packaging}</Text>
-                  ) : null}
                   <Text style={styles.itemMeta}>
                     {item.quantity} × {formatCurrency(item.unit_price)}
                   </Text>

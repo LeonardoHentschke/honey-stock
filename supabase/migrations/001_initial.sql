@@ -51,56 +51,22 @@ create table device_tokens (
 create index on device_tokens(user_id);
 
 -- =====================================================
--- categories
--- =====================================================
-create table categories (
-  id uuid primary key default gen_random_uuid(),
-  company_id uuid not null references companies(id) on delete cascade,
-  name text not null,
-  created_at timestamptz not null default now(),
-  unique (company_id, name)
-);
-create index on categories(company_id);
-
--- =====================================================
--- products
+-- products (item vendável direto — preço e estoque vivem aqui)
 -- =====================================================
 create table products (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references companies(id) on delete cascade,
-  category_id uuid references categories(id) on delete set null,
   name text not null,
   description text,
-  honey_type text,
+  cost_price numeric(12,2) not null default 0,
+  sale_price numeric(12,2) not null default 0,
+  stock_quantity numeric(12,3) not null default 0,
+  min_stock numeric(12,3) not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 create index on products(company_id);
-
--- =====================================================
--- product_variants
--- =====================================================
-create table product_variants (
-  id uuid primary key default gen_random_uuid(),
-  company_id uuid not null references companies(id) on delete cascade,
-  product_id uuid not null references products(id) on delete cascade,
-  sku text not null,
-  packaging text,
-  weight_grams numeric(10,2),
-  unit text not null default 'un',
-  cost_price numeric(12,2) not null default 0,
-  sale_price numeric(12,2) not null default 0,
-  reseller_price numeric(12,2),
-  stock_quantity numeric(12,3) not null default 0,
-  min_stock numeric(12,3) not null default 0,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (company_id, sku)
-);
-create index on product_variants(company_id);
-create index on product_variants(product_id);
 
 -- =====================================================
 -- batches
@@ -163,7 +129,7 @@ create type stock_movement_type as enum ('in', 'out', 'adjust', 'sale');
 create table stock_movements (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references companies(id) on delete cascade,
-  variant_id uuid not null references product_variants(id) on delete restrict,
+  product_id uuid not null references products(id) on delete restrict,
   batch_id uuid references batches(id) on delete set null,
   type stock_movement_type not null,
   quantity numeric(12,3) not null,
@@ -176,7 +142,7 @@ create table stock_movements (
   created_at timestamptz not null default now()
 );
 create index on stock_movements(company_id);
-create index on stock_movements(variant_id);
+create index on stock_movements(product_id);
 create index on stock_movements(created_at desc);
 
 -- =====================================================
@@ -210,7 +176,7 @@ create index on sales(scheduled_for) where scheduled_for is not null;
 create table sale_items (
   id uuid primary key default gen_random_uuid(),
   sale_id uuid not null references sales(id) on delete cascade,
-  variant_id uuid not null references product_variants(id) on delete restrict,
+  product_id uuid not null references products(id) on delete restrict,
   batch_id uuid references batches(id) on delete set null,
   quantity numeric(12,3) not null,
   unit_price numeric(12,2) not null,
@@ -255,8 +221,6 @@ $$ language plpgsql;
 
 create trigger trg_products_updated   before update on products
   for each row execute function set_updated_at();
-create trigger trg_variants_updated   before update on product_variants
-  for each row execute function set_updated_at();
 create trigger trg_customers_updated  before update on customers
   for each row execute function set_updated_at();
 create trigger trg_suppliers_updated  before update on suppliers
@@ -268,14 +232,14 @@ create trigger trg_suppliers_updated  before update on suppliers
 create or replace function apply_stock_movement() returns trigger as $$
 begin
   if new.type = 'in' then
-    update product_variants set stock_quantity = stock_quantity + new.quantity
-    where id = new.variant_id;
+    update products set stock_quantity = stock_quantity + new.quantity
+    where id = new.product_id;
   elsif new.type in ('out', 'sale') then
-    update product_variants set stock_quantity = stock_quantity - new.quantity
-    where id = new.variant_id;
+    update products set stock_quantity = stock_quantity - new.quantity
+    where id = new.product_id;
   elsif new.type = 'adjust' then
-    update product_variants set stock_quantity = new.quantity
-    where id = new.variant_id;
+    update products set stock_quantity = new.quantity
+    where id = new.product_id;
   end if;
   return new;
 end; $$ language plpgsql;
@@ -294,9 +258,9 @@ begin
   from sales where id = new.sale_id;
   if v_status in ('scheduled','canceled') then return new; end if;
   insert into stock_movements
-    (company_id, variant_id, batch_id, type, quantity, reference_type, reference_id, user_id)
+    (company_id, product_id, batch_id, type, quantity, reference_type, reference_id, user_id)
   values
-    (v_company, new.variant_id, new.batch_id, 'sale', new.quantity, 'sale', new.sale_id, v_user);
+    (v_company, new.product_id, new.batch_id, 'sale', new.quantity, 'sale', new.sale_id, v_user);
   return new;
 end; $$ language plpgsql;
 
@@ -310,8 +274,8 @@ create or replace function on_sale_status_change() returns trigger as $$
 begin
   if old.status = 'scheduled' and new.status in ('completed','delivered') then
     insert into stock_movements
-      (company_id, variant_id, batch_id, type, quantity, reference_type, reference_id, user_id)
-    select new.company_id, si.variant_id, si.batch_id, 'sale', si.quantity, 'sale', new.id, new.user_id
+      (company_id, product_id, batch_id, type, quantity, reference_type, reference_id, user_id)
+    select new.company_id, si.product_id, si.batch_id, 'sale', si.quantity, 'sale', new.id, new.user_id
     from sale_items si where si.sale_id = new.id;
   end if;
   return new;
@@ -326,9 +290,7 @@ create trigger trg_sale_status_change after update of status on sales
 alter table companies            enable row level security;
 alter table profiles             enable row level security;
 alter table device_tokens        enable row level security;
-alter table categories           enable row level security;
 alter table products             enable row level security;
-alter table product_variants     enable row level security;
 alter table batches              enable row level security;
 alter table suppliers            enable row level security;
 alter table customers            enable row level security;
@@ -345,9 +307,7 @@ language sql stable security definer as $$
 $$;
 
 -- Políticas por tabela
-create policy "own_company_all" on categories       for all using (company_id = current_company_id());
 create policy "own_company_all" on products         for all using (company_id = current_company_id());
-create policy "own_company_all" on product_variants for all using (company_id = current_company_id());
 create policy "own_company_all" on batches          for all using (company_id = current_company_id());
 create policy "own_company_all" on suppliers        for all using (company_id = current_company_id());
 create policy "own_company_all" on customers        for all using (company_id = current_company_id());

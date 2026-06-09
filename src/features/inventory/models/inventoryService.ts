@@ -12,7 +12,7 @@ export interface MovementWithDetails extends StockMovement {
 
 export interface EntryInput {
   companyId: string;
-  variantId: string;
+  productId: string;
   quantity: number;
   unitCost?: number | null;
   supplierId?: string | null;
@@ -23,7 +23,7 @@ export interface EntryInput {
 
 export interface ExitInput {
   companyId: string;
-  variantId: string;
+  productId: string;
   quantity: number;
   notes?: string | null;
   userId: string;
@@ -31,7 +31,7 @@ export interface ExitInput {
 
 export interface AdjustInput {
   companyId: string;
-  variantId: string;
+  productId: string;
   newQuantity: number;
   notes?: string | null;
   userId: string;
@@ -43,7 +43,7 @@ export const inventoryService = {
       .from('stock_movements')
       .insert({
         company_id: input.companyId,
-        variant_id: input.variantId,
+        product_id: input.productId,
         type: 'in',
         quantity: input.quantity,
         unit_cost: input.unitCost ?? null,
@@ -63,7 +63,7 @@ export const inventoryService = {
       .from('stock_movements')
       .insert({
         company_id: input.companyId,
-        variant_id: input.variantId,
+        product_id: input.productId,
         type: 'out',
         quantity: input.quantity,
         notes: input.notes ?? null,
@@ -80,7 +80,7 @@ export const inventoryService = {
       .from('stock_movements')
       .insert({
         company_id: input.companyId,
-        variant_id: input.variantId,
+        product_id: input.productId,
         type: 'adjust',
         quantity: input.newQuantity,
         notes: input.notes ?? null,
@@ -92,11 +92,11 @@ export const inventoryService = {
     return data;
   },
 
-  async listMovements(variantId: string, limit = 30): Promise<MovementWithDetails[]> {
+  async listMovements(productId: string, limit = 30): Promise<MovementWithDetails[]> {
     const { data, error } = await supabase
       .from('stock_movements')
       .select('*, batch:batches(code), supplier:suppliers(name)')
-      .eq('variant_id', variantId)
+      .eq('product_id', productId)
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error) throw new ServiceError('Erro ao buscar movimentações.', error);
@@ -107,22 +107,22 @@ export const inventoryService = {
     companyId: string,
     type?: StockMovementType | null,
     limit = 50,
-  ): Promise<MovementWithVariant[]> {
+  ): Promise<MovementWithProduct[]> {
     let q = supabase
       .from('stock_movements')
-      .select('*, batch:batches(code), supplier:suppliers(name), variant:product_variants(sku, product:products(name))')
+      .select('*, batch:batches(code), supplier:suppliers(name), product:products(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(limit);
     if (type) q = q.eq('type', type);
     const { data, error } = await q;
     if (error) throw new ServiceError('Erro ao buscar movimentações.', error);
-    return (data ?? []) as unknown as MovementWithVariant[];
+    return (data ?? []) as unknown as MovementWithProduct[];
   },
 };
 
-export interface MovementWithVariant extends StockMovement {
+export interface MovementWithProduct extends StockMovement {
   batch: { code: string } | null;
   supplier: { name: string } | null;
-  variant: { sku: string; product: { name: string } | null } | null;
+  product: { name: string } | null;
 }

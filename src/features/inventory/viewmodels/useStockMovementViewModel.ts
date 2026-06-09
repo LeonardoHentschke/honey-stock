@@ -13,7 +13,7 @@ import { humanizeError } from '@/shared/lib/errors';
 type MovementMode = 'entry' | 'exit' | 'adjust';
 
 interface Props {
-  variantId: string;
+  productId: string;
   companyId: string;
   mode: MovementMode;
   onSuccess: () => void;
@@ -25,7 +25,7 @@ function schemaForMode(mode: MovementMode) {
   return adjustSchema;
 }
 
-export function useStockMovementViewModel({ variantId, companyId, mode, onSuccess }: Props) {
+export function useStockMovementViewModel({ productId, companyId, mode, onSuccess }: Props) {
   const { session } = useAuth();
 
   const batchesQuery = useQuery({
@@ -52,7 +52,7 @@ export function useStockMovementViewModel({ variantId, companyId, mode, onSucces
       const userId = session!.user.id;
       if (mode === 'entry') {
         return inventoryService.createEntry({
-          companyId, variantId, userId,
+          companyId, productId, userId,
           quantity: values.quantity,
           unitCost: values.unit_cost,
           batchId: values.batch_id,
@@ -61,13 +61,13 @@ export function useStockMovementViewModel({ variantId, companyId, mode, onSucces
       }
       if (mode === 'exit') {
         return inventoryService.createExit({
-          companyId, variantId, userId,
+          companyId, productId, userId,
           quantity: values.quantity,
           notes: values.notes,
         });
       }
       return inventoryService.createAdjustment({
-        companyId, variantId, userId,
+        companyId, productId, userId,
         newQuantity: values.new_quantity,
         notes: values.notes,
       });

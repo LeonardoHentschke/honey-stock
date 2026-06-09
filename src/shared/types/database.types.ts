@@ -87,62 +87,14 @@ export interface Database {
         Relationships: [];
       };
 
-      categories: {
-        Row: {
-          id: string;
-          company_id: string;
-          name: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          company_id: string;
-          name: string;
-          created_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['categories']['Insert'], 'company_id'>>;
-        Relationships: [];
-      };
-
       products: {
         Row: {
           id: string;
           company_id: string;
-          category_id: string | null;
           name: string;
           description: string | null;
-          honey_type: string | null;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          company_id: string;
-          category_id?: string | null;
-          name: string;
-          description?: string | null;
-          honey_type?: string | null;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['products']['Insert'], 'company_id'>>;
-        Relationships: [];
-      };
-
-      product_variants: {
-        Row: {
-          id: string;
-          company_id: string;
-          product_id: string;
-          sku: string;
-          packaging: string | null;
-          weight_grams: number | null;
-          unit: string;
           cost_price: number;
           sale_price: number;
-          reseller_price: number | null;
           stock_quantity: number;
           min_stock: number;
           is_active: boolean;
@@ -152,21 +104,17 @@ export interface Database {
         Insert: {
           id?: string;
           company_id: string;
-          product_id: string;
-          sku: string;
-          packaging?: string | null;
-          weight_grams?: number | null;
-          unit?: string;
+          name: string;
+          description?: string | null;
           cost_price?: number;
           sale_price?: number;
-          reseller_price?: number | null;
           stock_quantity?: number;
           min_stock?: number;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Omit<Database['public']['Tables']['product_variants']['Insert'], 'company_id'>>;
+        Update: Partial<Omit<Database['public']['Tables']['products']['Insert'], 'company_id'>>;
         Relationships: [];
       };
 
@@ -265,7 +213,7 @@ export interface Database {
         Row: {
           id: string;
           company_id: string;
-          variant_id: string;
+          product_id: string;
           batch_id: string | null;
           type: StockMovementType;
           quantity: number;
@@ -280,7 +228,7 @@ export interface Database {
         Insert: {
           id?: string;
           company_id: string;
-          variant_id: string;
+          product_id: string;
           batch_id?: string | null;
           type: StockMovementType;
           quantity: number;
@@ -333,7 +281,7 @@ export interface Database {
         Row: {
           id: string;
           sale_id: string;
-          variant_id: string;
+          product_id: string;
           batch_id: string | null;
           quantity: number;
           unit_price: number;
@@ -342,7 +290,7 @@ export interface Database {
         Insert: {
           id?: string;
           sale_id: string;
-          variant_id: string;
+          product_id: string;
           batch_id?: string | null;
           quantity: number;
           unit_price: number;

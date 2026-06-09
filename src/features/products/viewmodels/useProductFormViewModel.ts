@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { productService, type Product } from '../models/productService';
-import { categoryService, type Category } from '../models/categoryService';
 import { createProductSchema, type CreateProductValues } from '../models/productSchemas';
 import { humanizeError } from '@/shared/lib/errors';
 
@@ -21,9 +20,11 @@ export function useProductFormViewModel({ mode, product, onSuccess }: UseProduct
     resolver: zodResolver(createProductSchema),
     defaultValues: {
       name: '',
-      honey_type: null,
-      category_id: null,
       description: null,
+      sale_price: 0,
+      cost_price: 0,
+      stock_quantity: 0,
+      min_stock: 0,
     },
   });
 
@@ -31,25 +32,21 @@ export function useProductFormViewModel({ mode, product, onSuccess }: UseProduct
     if (mode === 'edit' && product) {
       reset({
         name: product.name,
-        honey_type: product.honey_type,
-        category_id: product.category_id,
         description: product.description,
+        sale_price: product.sale_price,
+        cost_price: product.cost_price,
+        stock_quantity: product.stock_quantity,
+        min_stock: product.min_stock,
       });
     }
   }, [mode, product, reset]);
 
-  const categoriesQuery = useQuery<Category[], Error>({
-    queryKey: ['categories', profile?.company_id],
-    queryFn: () => categoryService.list(profile!.company_id),
-    enabled: !!profile,
-    staleTime: 60_000,
-  });
-
   const mutation = useMutation({
     mutationFn: (values: CreateProductValues) => {
-      console.log('[ProductForm] submit → profile:', JSON.stringify(profile), '| company_id:', profile?.company_id);
       if (mode === 'edit' && product) {
-        return productService.update(product.id, values);
+        // estoque não é editado pelo form (usa movimentações); só os demais campos.
+        const { stock_quantity: _stock, ...rest } = values;
+        return productService.update(product.id, rest);
       }
       return productService.create(profile!.company_id, values);
     },
@@ -59,7 +56,6 @@ export function useProductFormViewModel({ mode, product, onSuccess }: UseProduct
   return {
     control,
     errors,
-    categories: categoriesQuery.data ?? [],
     isSubmitting: mutation.isPending,
     submitError: mutation.error ? humanizeError(mutation.error) : null,
     submit: handleSubmit((values) => mutation.mutate(values)),

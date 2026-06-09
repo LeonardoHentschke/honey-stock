@@ -4,7 +4,6 @@ import type { MoreStackParamList } from './types';
 
 import { MoreScreen }           from '@/features/more/views/MoreScreen';
 import { BatchListScreen }       from '@/features/batches/views/BatchListScreen';
-import { CategoryListScreen }    from '@/features/products/views/CategoryListScreen';
 import { RemindersListScreen }   from '@/features/reminders/views/RemindersListScreen';
 import { ReminderDetailScreen }  from '@/features/reminders/views/ReminderDetailScreen';
 import { ReportsScreen }         from '@/features/reports/views/ReportsScreen';
@@ -23,7 +22,6 @@ export function MoreStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreHome"        component={MoreScreen} />
       <Stack.Screen name="Batches"         component={BatchListScreen} />
-      <Stack.Screen name="Categories"      component={CategoryListScreen} />
       <Stack.Screen name="Reminders"       component={RemindersListScreen} />
       <Stack.Screen name="ReminderDetail"  component={ReminderDetailScreen} />
       <Stack.Screen name="Reports"         component={ReportsScreen} />

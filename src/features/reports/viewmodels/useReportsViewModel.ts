@@ -36,7 +36,7 @@ export interface SalesByDayPoint {
   [key: string]: unknown;
 }
 
-export interface TopVariantPoint {
+export interface TopProductPoint {
   index: number;
   label: string;
   qty: number;
@@ -84,7 +84,7 @@ export function useReportsViewModel() {
 
   const lowStockQuery = useQuery({
     queryKey: ['low-stock-report', companyId],
-    queryFn: () => reportsService.getLowStockVariants(companyId),
+    queryFn: () => reportsService.getLowStockProducts(companyId),
     enabled: !!companyId,
     staleTime: 60_000,
   });
@@ -114,11 +114,11 @@ export function useReportsViewModel() {
       });
   }, [salesQuery.data]);
 
-  const topVariants = useMemo<TopVariantPoint[]>(() => {
+  const topProducts = useMemo<TopProductPoint[]>(() => {
     const items = itemsQuery.data ?? [];
     const qtys: Record<string, number> = {};
     items.forEach((item) => {
-      const name = item.product_variants?.products?.name ?? item.product_variants?.sku ?? '?';
+      const name = item.products?.name ?? '?';
       qtys[name] = (qtys[name] ?? 0) + item.quantity;
     });
     return Object.entries(qtys)
@@ -175,10 +175,10 @@ export function useReportsViewModel() {
     setPeriod,
     salesSummary,
     salesByDay,
-    topVariants,
+    topProducts,
     byChannel,
     byPayment,
-    lowStockVariants: lowStockQuery.data ?? [],
+    lowStockProducts: lowStockQuery.data ?? [],
     isLoading,
     isRefetching,
     refresh,

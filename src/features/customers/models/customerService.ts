@@ -93,25 +93,22 @@ export const customerService = {
     if (error) throw new ServiceError('Erro ao desativar cliente.', error);
   },
 
-  async priceForCustomer(variantId: string, customerId: string): Promise<number> {
-    const [variantResult, customerResult] = await Promise.all([
-      supabase.from('product_variants').select('sale_price, reseller_price').eq('id', variantId).single(),
+  async priceForCustomer(productId: string, customerId: string): Promise<number> {
+    const [productResult, customerResult] = await Promise.all([
+      supabase.from('products').select('sale_price').eq('id', productId).single(),
       supabase.from('customers').select('type, reseller_discount_percent').eq('id', customerId).single(),
     ]);
 
-    if (variantResult.error) throw new ServiceError('Variante não encontrada.', variantResult.error);
+    if (productResult.error) throw new ServiceError('Produto não encontrado.', productResult.error);
     if (customerResult.error) throw new ServiceError('Cliente não encontrado.', customerResult.error);
 
-    const variant = variantResult.data;
+    const product = productResult.data;
     const customer = customerResult.data;
 
-    if (customer.type === 'reseller') {
-      if (variant.reseller_price != null) return variant.reseller_price;
-      if (customer.reseller_discount_percent != null) {
-        return variant.sale_price * (1 - customer.reseller_discount_percent / 100);
-      }
+    if (customer.type === 'reseller' && customer.reseller_discount_percent != null) {
+      return product.sale_price * (1 - customer.reseller_discount_percent / 100);
     }
 
-    return variant.sale_price;
+    return product.sale_price;
   },
 };

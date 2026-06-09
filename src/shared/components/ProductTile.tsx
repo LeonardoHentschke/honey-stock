@@ -3,10 +3,8 @@ import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 interface ProductTileProps {
-  /** Nome do produto — usado para inferir o tipo de mel quando `honeyType` é vazio. */
+  /** Nome do produto — usado para tonalizar o ícone. */
   name: string;
-  /** Tipo de mel explícito (coluna `honey_type`). */
-  honeyType?: string | null;
   size?: number;
 }
 
@@ -15,21 +13,20 @@ interface TileColors {
   fg: string;
 }
 
-function colorsFor(name: string, honeyType?: string | null): TileColors {
-  const haystack = `${name} ${honeyType ?? ''}`;
-  if (/eucalipto/i.test(haystack)) return { bg: '#E6F0E2', fg: '#3F6B3A' };
-  if (/laranj/i.test(haystack)) return { bg: '#FDE8C4', fg: '#A65A14' };
-  if (/pr[óo]polis|propol/i.test(haystack)) return { bg: '#E9DDC2', fg: '#7A5A2A' };
-  // silvestre / default
+function colorsFor(name: string): TileColors {
+  if (/eucalipto/i.test(name)) return { bg: '#E6F0E2', fg: '#3F6B3A' };
+  if (/laranj/i.test(name)) return { bg: '#FDE8C4', fg: '#A65A14' };
+  if (/pr[óo]polis|propol/i.test(name)) return { bg: '#E9DDC2', fg: '#7A5A2A' };
+  // mel / default
   return { bg: '#FDEDB3', fg: '#9B5F0B' };
 }
 
 /**
- * Ícone de pote de mel, tonalizado por tipo de mel.
+ * Ícone de pote de mel, tonalizado pelo nome do produto.
  * Espelha o `ProductTile` do protótipo de design (variante Remix).
  */
-export function ProductTile({ name, honeyType, size = 48 }: ProductTileProps) {
-  const { bg, fg } = colorsFor(name, honeyType);
+export function ProductTile({ name, size = 48 }: ProductTileProps) {
+  const { bg, fg } = colorsFor(name);
   const icon = size * 0.6;
 
   return (

@@ -336,7 +336,7 @@ function InfoRow({
 
 function SaleHistoryCard({ sale }: { sale: SaleWithItems }) {
   const itemsLabel = (sale.items ?? [])
-    .map((it) => `${it.quantity}× ${it.variant?.product?.name ?? 'Item'}`)
+    .map((it) => `${it.quantity}× ${it.product?.name ?? 'Item'}`)
     .join(' · ');
 
   return (

@@ -1,7 +1,18 @@
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/shared/lib/supabase';
 import { useAuthStore } from '@/shared/stores/authStore';
+
+/**
+ * Identifica o caso "refresh token inválido / não encontrado", comum em dev ao
+ * trocar de projeto Supabase ou limpar o banco: o SecureStore ainda guarda a
+ * sessão antiga, que o novo backend não reconhece. Não é falha de rede/código.
+ */
+function isInvalidRefreshTokenError(error: unknown): boolean {
+  if (!(error instanceof AuthError)) return false;
+  return /refresh token/i.test(error.message);
+}
 
 /**
  * Escuta mudanças de sessão do Supabase e sincroniza com o authStore.
@@ -19,11 +30,30 @@ export function useAuthListener() {
 
   useEffect(() => {
     // Verificar sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) loadProfile(session.user.id);
-      else setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session }, error }) => {
+        // Refresh token inválido/ausente (ex.: troca de projeto Supabase em dev,
+        // ou sessão expirada). Não é erro de fato — só não há sessão válida.
+        if (error) {
+          if (isInvalidRefreshTokenError(error)) {
+            await supabase.auth.signOut().catch(() => {});
+          } else {
+            console.warn('[useAuth] getSession error:', error.message);
+          }
+          clearAuth();
+          setLoading(false);
+          return;
+        }
+        setSession(session);
+        if (session) loadProfile(session.user.id);
+        else setLoading(false);
+      })
+      .catch((err) => {
+        console.warn('[useAuth] getSession failed:', err?.message ?? err);
+        clearAuth();
+        setLoading(false);
+      });
 
     // Escutar mudanças
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

@@ -62,7 +62,7 @@ function formatDeliveryDate(scheduledFor: string): string {
 
 function buildDelivery(sale: RawDelivery): NextDelivery {
   const summaryParts = sale.sale_items.slice(0, 2).map(
-    (item) => `${item.quantity}× ${item.product_variants?.products?.name ?? '?'}`
+    (item) => `${item.quantity}× ${item.products?.name ?? '?'}`
   );
   const extra = sale.sale_items.length > 2 ? ` +${sale.sale_items.length - 2}` : '';
   return {

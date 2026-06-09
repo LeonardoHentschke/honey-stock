@@ -14,11 +14,10 @@ export interface RawSale {
 export interface RawSaleItem {
   quantity: number;
   sale_id: string;
-  product_variants: { sku: string; products: { name: string } | null } | null;
+  products: { name: string } | null;
 }
 
-export interface LowStockVariant {
-  sku: string;
+export interface LowStockProduct {
   stock_quantity: number;
   min_stock: number;
   product_name: string;
@@ -46,21 +45,21 @@ export const reportsService = {
     if (saleIds.length === 0) return [];
     const { data, error } = await supabase
       .from('sale_items')
-      .select('quantity, sale_id, product_variants(sku, products(name))')
+      .select('quantity, sale_id, products(name)')
       .in('sale_id', saleIds);
     if (error) throw new ServiceError('Erro ao buscar itens de venda.', error);
     return (data ?? []) as unknown as RawSaleItem[];
   },
 
-  async getLowStockVariants(companyId: string, limit = 10): Promise<LowStockVariant[]> {
+  async getLowStockProducts(companyId: string, limit = 10): Promise<LowStockProduct[]> {
     const { data, error } = await supabase
-      .from('product_variants')
-      .select('sku, stock_quantity, min_stock, products(name)')
+      .from('products')
+      .select('name, stock_quantity, min_stock')
       .eq('company_id', companyId)
       .eq('is_active', true);
     if (error) throw new ServiceError('Erro ao buscar estoque.', error);
 
-    type Row = { sku: string; stock_quantity: number; min_stock: number; products: { name: string } | null };
+    type Row = { name: string; stock_quantity: number; min_stock: number };
     const rows = (data ?? []) as unknown as Row[];
 
     return rows
@@ -72,10 +71,9 @@ export const reportsService = {
       })
       .slice(0, limit)
       .map((r) => ({
-        sku: r.sku,
         stock_quantity: r.stock_quantity,
         min_stock: r.min_stock,
-        product_name: r.products?.name ?? r.sku,
+        product_name: r.name,
       }));
   },
 };

@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { variantService, type ActiveVariant } from '@/features/products/models/variantService';
+import { productService, type Product } from '@/features/products/models/productService';
 import { customerService, type Customer } from '@/features/customers/models/customerService';
 import { salesService, type SaleChannel, type PaymentMethod } from '../models/salesService';
 import { humanizeError } from '@/shared/lib/errors';
@@ -38,27 +38,23 @@ export function useNewSaleViewModel() {
   const [scheduledTimeText, setScheduledTimeText] = useState('');
   const [schedulingError, setSchedulingError] = useState<string | null>(null);
 
-  // ─── Busca de variantes ────────────────────────────────────────────────────
-  const [variantQuery, setVariantQuery] = useState('');
+  // ─── Busca de produtos ─────────────────────────────────────────────────────
+  const [productQuery, setProductQuery] = useState('');
 
-  const variantsQuery = useQuery({
-    queryKey: ['variants-active', companyId],
-    queryFn: () => variantService.listActive(companyId),
+  const productsQuery = useQuery({
+    queryKey: ['products-active', companyId],
+    queryFn: () => productService.listActive(companyId),
     enabled: !!companyId,
     staleTime: 60_000,
   });
 
-  const filteredVariants = useMemo<ActiveVariant[]>(() => {
-    if (!variantQuery.trim()) return variantsQuery.data ?? [];
-    const q = variantQuery.toLowerCase();
-    return (variantsQuery.data ?? []).filter(
-      (v) =>
-        v.product_name.toLowerCase().includes(q) ||
-        v.sku.toLowerCase().includes(q) ||
-        (v.packaging ?? '').toLowerCase().includes(q) ||
-        (v.honey_type ?? '').toLowerCase().includes(q)
+  const filteredProducts = useMemo<Product[]>(() => {
+    if (!productQuery.trim()) return productsQuery.data ?? [];
+    const q = productQuery.toLowerCase();
+    return (productsQuery.data ?? []).filter((p) =>
+      p.name.toLowerCase().includes(q)
     );
-  }, [variantsQuery.data, variantQuery]);
+  }, [productsQuery.data, productQuery]);
 
   // ─── Clientes ──────────────────────────────────────────────────────────────
   const customersQuery = useQuery({
@@ -70,12 +66,12 @@ export function useNewSaleViewModel() {
 
   // ─── Calcular preço unitário ────────────────────────────────────────────────
   const resolvePrice = useCallback(
-    async (variant: ActiveVariant, customer: Customer | null): Promise<number> => {
-      if (!customer) return variant.sale_price;
+    async (product: Product, customer: Customer | null): Promise<number> => {
+      if (!customer) return product.sale_price;
       try {
-        return await customerService.priceForCustomer(variant.id, customer.id);
+        return await customerService.priceForCustomer(product.id, customer.id);
       } catch {
-        return variant.sale_price;
+        return product.sale_price;
       }
     },
     []
@@ -83,16 +79,16 @@ export function useNewSaleViewModel() {
 
   // ─── Ações do carrinho ─────────────────────────────────────────────────────
   const addToCart = useCallback(
-    async (variant: ActiveVariant) => {
-      const unitPrice = await resolvePrice(variant, selectedCustomer);
+    async (product: Product) => {
+      const unitPrice = await resolvePrice(product, selectedCustomer);
       const priceIsAdjusted =
-        selectedCustomer?.type === 'reseller' && unitPrice !== variant.sale_price;
+        selectedCustomer?.type === 'reseller' && unitPrice !== product.sale_price;
 
       setCartItems((prev) => {
-        const existing = prev.find((i) => i.variantId === variant.id);
+        const existing = prev.find((i) => i.productId === product.id);
         if (existing) {
           return prev.map((i) =>
-            i.variantId === variant.id
+            i.productId === product.id
               ? { ...i, quantity: i.quantity + 1, subtotal: (i.quantity + 1) * i.unitPrice }
               : i
           );
@@ -100,11 +96,8 @@ export function useNewSaleViewModel() {
         return [
           ...prev,
           {
-            variantId: variant.id,
-            productName: variant.product_name,
-            sku: variant.sku,
-            packaging: variant.packaging,
-            unit: variant.unit,
+            productId: product.id,
+            productName: product.name,
             quantity: 1,
             unitPrice,
             subtotal: unitPrice,
@@ -116,13 +109,13 @@ export function useNewSaleViewModel() {
     [selectedCustomer, resolvePrice]
   );
 
-  const updateQty = useCallback((variantId: string, qty: number) => {
+  const updateQty = useCallback((productId: string, qty: number) => {
     if (qty <= 0) {
-      setCartItems((prev) => prev.filter((i) => i.variantId !== variantId));
+      setCartItems((prev) => prev.filter((i) => i.productId !== productId));
     } else {
       setCartItems((prev) =>
         prev.map((i) =>
-          i.variantId === variantId
+          i.productId === productId
             ? { ...i, quantity: qty, subtotal: qty * i.unitPrice }
             : i
         )
@@ -136,14 +129,14 @@ export function useNewSaleViewModel() {
       if (cartItems.length === 0) return;
 
       // Recalcula preços de todos os itens do carrinho
-      const variantsData = variantsQuery.data ?? [];
+      const productsData = productsQuery.data ?? [];
       const updated = await Promise.all(
         cartItems.map(async (item) => {
-          const variant = variantsData.find((v) => v.id === item.variantId);
-          if (!variant) return item;
-          const unitPrice = await resolvePrice(variant, customer);
+          const product = productsData.find((p) => p.id === item.productId);
+          if (!product) return item;
+          const unitPrice = await resolvePrice(product, customer);
           const priceIsAdjusted =
-            customer?.type === 'reseller' && unitPrice !== variant.sale_price;
+            customer?.type === 'reseller' && unitPrice !== product.sale_price;
           return {
             ...item,
             unitPrice,
@@ -154,7 +147,7 @@ export function useNewSaleViewModel() {
       );
       setCartItems(updated);
     },
-    [cartItems, variantsQuery.data, resolvePrice]
+    [cartItems, productsQuery.data, resolvePrice]
   );
 
   // ─── Totais ────────────────────────────────────────────────────────────────
@@ -186,7 +179,8 @@ export function useNewSaleViewModel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['variants-active', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['products-active', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['products', companyId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', companyId] });
       // Reset
       setCartItems([]);
@@ -227,11 +221,11 @@ export function useNewSaleViewModel() {
     customers: customersQuery.data ?? [],
     isLoadingCustomers: customersQuery.isLoading,
 
-    // Variantes
-    variantQuery,
-    setVariantQuery,
-    filteredVariants,
-    isLoadingVariants: variantsQuery.isLoading,
+    // Produtos
+    productQuery,
+    setProductQuery,
+    filteredProducts,
+    isLoadingProducts: productsQuery.isLoading,
 
     // Form
     channel,

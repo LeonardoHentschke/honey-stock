@@ -3,25 +3,22 @@ import { ServiceError } from '@/shared/lib/errors';
 import type { Database } from '@/shared/types/database.types';
 
 export type Product = Database['public']['Tables']['products']['Row'];
-export type ProductVariant = Database['public']['Tables']['product_variants']['Row'];
-
-export interface ProductWithVariants extends Product {
-  variants: ProductVariant[];
-  category: { id: string; name: string } | null;
-}
 
 export interface CreateProductInput {
   name: string;
-  honey_type?: string | null;
-  category_id?: string | null;
   description?: string | null;
+  cost_price: number;
+  sale_price: number;
+  stock_quantity?: number;
+  min_stock?: number;
 }
 
 export interface UpdateProductInput {
   name?: string;
-  honey_type?: string | null;
-  category_id?: string | null;
   description?: string | null;
+  cost_price?: number;
+  sale_price?: number;
+  min_stock?: number;
   is_active?: boolean;
 }
 
@@ -30,13 +27,18 @@ export interface ProductFilters {
   lowStockOnly?: boolean;
 }
 
-const VARIANT_SELECT = 'id, sku, packaging, unit, weight_grams, cost_price, sale_price, reseller_price, stock_quantity, min_stock, is_active, created_at, updated_at, product_id, company_id';
+export interface LowStockProduct {
+  id: string;
+  name: string;
+  stock_quantity: number;
+  min_stock: number;
+}
 
 export const productService = {
-  async list(companyId: string, filters?: ProductFilters): Promise<ProductWithVariants[]> {
+  async list(companyId: string, filters?: ProductFilters): Promise<Product[]> {
     let query = supabase
       .from('products')
-      .select(`*, category:categories(id, name), variants:product_variants(${VARIANT_SELECT})`)
+      .select('*')
       .eq('company_id', companyId)
       .eq('is_active', true)
       .order('name');
@@ -48,35 +50,54 @@ export const productService = {
     const { data, error } = await query;
     if (error) throw new ServiceError('Erro ao buscar produtos.', error);
 
-    const rows = (data ?? []) as unknown as ProductWithVariants[];
+    const rows = data ?? [];
 
     if (filters?.lowStockOnly) {
-      return rows.filter((p) =>
-        p.variants.some((v) => v.is_active && v.stock_quantity <= v.min_stock)
-      );
+      return rows.filter((p) => p.stock_quantity <= p.min_stock);
     }
 
     return rows;
   },
 
-  async get(id: string): Promise<ProductWithVariants> {
+  async get(id: string): Promise<Product> {
     const { data, error } = await supabase
       .from('products')
-      .select(`*, category:categories(id, name), variants:product_variants(${VARIANT_SELECT})`)
+      .select('*')
       .eq('id', id)
       .single();
     if (error) throw new ServiceError('Produto não encontrado.', error);
-    return data as unknown as ProductWithVariants;
+    return data;
+  },
+
+  /** Produtos ativos — usado no PDV (busca de itens vendáveis). */
+  async listActive(companyId: string): Promise<Product[]> {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .order('name');
+    if (error) throw new ServiceError('Erro ao buscar produtos.', error);
+    return data ?? [];
+  },
+
+  async lowStock(companyId: string): Promise<LowStockProduct[]> {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, stock_quantity, min_stock')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .filter('stock_quantity', 'lte', 'min_stock');
+    if (error) throw new ServiceError('Erro ao buscar estoque baixo.', error);
+    return data ?? [];
   },
 
   async create(companyId: string, input: CreateProductInput): Promise<Product> {
-    console.log('[productService] create → companyId:', companyId, '| input:', JSON.stringify(input));
     const { data, error } = await supabase
       .from('products')
       .insert({ company_id: companyId, ...input })
       .select()
       .single();
-    console.log('[productService] create → data:', JSON.stringify(data), '| error:', error?.message, error?.details);
     if (error) throw new ServiceError('Erro ao criar produto.', error);
     return data;
   },

@@ -6,7 +6,7 @@ import type { CartItem } from '../../models/salesSchemas';
 
 interface Props {
   item: CartItem;
-  onUpdateQty: (variantId: string, qty: number) => void;
+  onUpdateQty: (productId: string, qty: number) => void;
 }
 
 export function CartItemRow({ item, onUpdateQty }: Props) {
@@ -17,9 +17,6 @@ export function CartItemRow({ item, onUpdateQty }: Props) {
           <Text style={styles.name} numberOfLines={1}>
             {item.productName}
           </Text>
-          {item.packaging ? (
-            <Text style={styles.sub}>{item.packaging}</Text>
-          ) : null}
           <View style={styles.priceRow}>
             <Text style={styles.unitPrice}>{formatCurrency(item.unitPrice)}/un</Text>
             {item.priceIsAdjusted ? (
@@ -30,7 +27,7 @@ export function CartItemRow({ item, onUpdateQty }: Props) {
           </View>
         </View>
         <Pressable
-          onPress={() => onUpdateQty(item.variantId, 0)}
+          onPress={() => onUpdateQty(item.productId, 0)}
           hitSlop={8}
           style={styles.trashBtn}
         >
@@ -42,14 +39,14 @@ export function CartItemRow({ item, onUpdateQty }: Props) {
         <View style={styles.stepper}>
           <Pressable
             style={styles.stepBtn}
-            onPress={() => onUpdateQty(item.variantId, item.quantity - 1)}
+            onPress={() => onUpdateQty(item.productId, item.quantity - 1)}
           >
             <Minus size={16} color="#C47C0A" />
           </Pressable>
           <Text style={styles.qty}>{item.quantity}</Text>
           <Pressable
             style={styles.stepBtn}
-            onPress={() => onUpdateQty(item.variantId, item.quantity + 1)}
+            onPress={() => onUpdateQty(item.productId, item.quantity + 1)}
           >
             <Plus size={16} color="#C47C0A" />
           </Pressable>

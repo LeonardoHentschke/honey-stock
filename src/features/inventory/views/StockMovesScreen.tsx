@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Settings2, ShoppingCart } from 'lucide-react-native';
 import { useStockMovesViewModel, type MoveTypeFilter } from '../viewmodels/useStockMovesViewModel';
-import type { MovementWithVariant } from '../models/inventoryService';
+import type { MovementWithProduct } from '../models/inventoryService';
 
 const FILTERS: { key: MoveTypeFilter; label: string }[] = [
   { key: 'all', label: 'Todos' },
@@ -33,11 +33,10 @@ function formatTime(iso: string): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
-function MoveRow({ item }: { item: MovementWithVariant }) {
+function MoveRow({ item }: { item: MovementWithProduct }) {
   const cfg = TYPE_CONFIG[item.type as keyof typeof TYPE_CONFIG] ?? TYPE_CONFIG.adjust;
   const Icon = cfg.icon;
-  const productName = (item.variant as any)?.product?.name ?? '—';
-  const sku = (item.variant as any)?.sku ?? '';
+  const productName = item.product?.name ?? '—';
 
   return (
     <View style={styles.row}>
@@ -46,7 +45,6 @@ function MoveRow({ item }: { item: MovementWithVariant }) {
       </View>
       <View style={styles.rowText}>
         <Text style={styles.rowProduct} numberOfLines={1}>{productName}</Text>
-        {sku ? <Text style={styles.rowSku} numberOfLines={1}>{sku}</Text> : null}
       </View>
       <View style={styles.rowRight}>
         <Text style={[styles.rowQty, { color: cfg.color }]}>

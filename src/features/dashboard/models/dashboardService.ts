@@ -3,7 +3,7 @@ import { ServiceError } from '@/shared/lib/errors';
 
 type RawSaleItem = {
   quantity: number;
-  product_variants: { products: { name: string } | null } | null;
+  products: { name: string } | null;
 };
 
 export type RawDelivery = {
@@ -69,14 +69,14 @@ export const dashboardService = {
 
     const { data, error } = await supabase
       .from('sale_items')
-      .select('quantity, product_variants(products(name))')
+      .select('quantity, products(name)')
       .in('sale_id', saleIds);
     if (error) throw new ServiceError('Erro ao buscar mais vendido.', error);
 
     const items = (data ?? []) as unknown as RawSaleItem[];
     const qtys: Record<string, number> = {};
     items.forEach((item) => {
-      const name = item.product_variants?.products?.name;
+      const name = item.products?.name;
       if (name) qtys[name] = (qtys[name] ?? 0) + item.quantity;
     });
 
@@ -86,13 +86,13 @@ export const dashboardService = {
 
   async getLowStockCount(companyId: string): Promise<number> {
     const { data, error } = await supabase
-      .from('product_variants')
+      .from('products')
       .select('stock_quantity, min_stock')
       .eq('company_id', companyId)
       .eq('is_active', true);
     if (error) throw new ServiceError('Erro ao buscar estoque.', error);
 
-    return (data ?? []).filter((v) => v.stock_quantity <= v.min_stock).length;
+    return (data ?? []).filter((p) => p.stock_quantity <= p.min_stock).length;
   },
 
   async getPendingRemindersCount(companyId: string): Promise<number> {
@@ -110,7 +110,7 @@ export const dashboardService = {
   async getNextDeliveries(companyId: string): Promise<RawDelivery[]> {
     const { data, error } = await supabase
       .from('sales')
-      .select('id, scheduled_for, total, customers(name), sale_items(quantity, product_variants(products(name)))')
+      .select('id, scheduled_for, total, customers(name), sale_items(quantity, products(name))')
       .eq('company_id', companyId)
       .eq('status', 'scheduled')
       .gte('scheduled_for', new Date().toISOString())
