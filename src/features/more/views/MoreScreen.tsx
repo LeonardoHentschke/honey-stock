@@ -15,12 +15,10 @@ import {
   BarChart3,
   LogOut,
   ChevronRight,
-  Tags,
   User,
   Copy,
   Building2,
   ArrowLeftRight,
-  Truck,
   Users,
   Settings,
   UserPlus,
@@ -119,18 +117,6 @@ export function MoreScreen() {
     {
       title: 'Cadastros',
       items: [
-        {
-          Icon: Tags,
-          label: 'Lotes de produção',
-          subtitle: 'Rastreabilidade por envase',
-          onPress: () => navigation.navigate('Batches'),
-        },
-        {
-          Icon: Truck,
-          label: 'Fornecedores',
-          subtitle: 'Gestão de fornecedores',
-          onPress: () => navigation.navigate('Suppliers'),
-        },
         {
           Icon: Users,
           label: 'Equipe',

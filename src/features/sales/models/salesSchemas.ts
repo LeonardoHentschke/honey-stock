@@ -6,7 +6,6 @@ export const cartItemSchema = z.object({
   quantity: z.number().positive(),
   unitPrice: z.number().nonnegative(),
   subtotal: z.number().nonnegative(),
-  batchId: z.string().uuid().nullable().optional(),
   priceIsAdjusted: z.boolean().optional(),
 });
 

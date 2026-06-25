@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const entrySchema = z.object({
   quantity: z.number().positive('Quantidade deve ser maior que zero.'),
   unit_cost: z.number().min(0).nullable().optional(),
-  batch_id: z.string().uuid().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 

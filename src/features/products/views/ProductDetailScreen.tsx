@@ -219,8 +219,6 @@ function MovementRow({ movement }: { movement: MovementWithDetails }) {
         <Text style={styles.movLabel}>{cfg.label}</Text>
         {movement.notes ? (
           <Text style={styles.movNotes} numberOfLines={1}>{movement.notes}</Text>
-        ) : movement.batch ? (
-          <Text style={styles.movNotes}>Lote {movement.batch.code}</Text>
         ) : null}
       </View>
       <View style={styles.movRight}>

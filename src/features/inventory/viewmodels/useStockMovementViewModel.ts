@@ -1,13 +1,12 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { inventoryService } from '../models/inventoryService';
 import {
   entrySchema, exitSchema, adjustSchema,
   type EntryValues, type ExitValues, type AdjustValues,
 } from '../models/inventorySchemas';
-import { batchService } from '@/features/batches/models/batchService';
 import { humanizeError } from '@/shared/lib/errors';
 
 type MovementMode = 'entry' | 'exit' | 'adjust';
@@ -28,13 +27,6 @@ function schemaForMode(mode: MovementMode) {
 export function useStockMovementViewModel({ productId, companyId, mode, onSuccess }: Props) {
   const { session } = useAuth();
 
-  const batchesQuery = useQuery({
-    queryKey: ['batches', companyId],
-    queryFn: () => batchService.list(companyId),
-    enabled: mode === 'entry',
-    staleTime: 60_000,
-  });
-
   const form = useForm<EntryValues & ExitValues & AdjustValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schemaForMode(mode)) as any,
@@ -42,7 +34,6 @@ export function useStockMovementViewModel({ productId, companyId, mode, onSucces
       quantity: 0,
       new_quantity: 0,
       unit_cost: null,
-      batch_id: null,
       notes: null,
     },
   });
@@ -55,7 +46,6 @@ export function useStockMovementViewModel({ productId, companyId, mode, onSucces
           companyId, productId, userId,
           quantity: values.quantity,
           unitCost: values.unit_cost,
-          batchId: values.batch_id,
           notes: values.notes,
         });
       }
@@ -78,7 +68,6 @@ export function useStockMovementViewModel({ productId, companyId, mode, onSucces
   return {
     control: form.control,
     errors: form.formState.errors,
-    batches: batchesQuery.data ?? [],
     isSubmitting: mutation.isPending,
     submitError: mutation.error ? humanizeError(mutation.error) : null,
     submit: form.handleSubmit((values) => mutation.mutate(values as EntryValues & ExitValues & AdjustValues)),

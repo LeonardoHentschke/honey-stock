@@ -5,18 +5,13 @@ import type { Database } from '@/shared/types/database.types';
 type StockMovement = Database['public']['Tables']['stock_movements']['Row'];
 type StockMovementType = Database['public']['Enums']['stock_movement_type'];
 
-export interface MovementWithDetails extends StockMovement {
-  batch: { code: string } | null;
-  supplier: { name: string } | null;
-}
+export type MovementWithDetails = StockMovement;
 
 export interface EntryInput {
   companyId: string;
   productId: string;
   quantity: number;
   unitCost?: number | null;
-  supplierId?: string | null;
-  batchId?: string | null;
   notes?: string | null;
   userId: string;
 }
@@ -47,8 +42,6 @@ export const inventoryService = {
         type: 'in',
         quantity: input.quantity,
         unit_cost: input.unitCost ?? null,
-        supplier_id: input.supplierId ?? null,
-        batch_id: input.batchId ?? null,
         notes: input.notes ?? null,
         user_id: input.userId,
       })
@@ -95,7 +88,7 @@ export const inventoryService = {
   async listMovements(productId: string, limit = 30): Promise<MovementWithDetails[]> {
     const { data, error } = await supabase
       .from('stock_movements')
-      .select('*, batch:batches(code), supplier:suppliers(name)')
+      .select('*')
       .eq('product_id', productId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -110,7 +103,7 @@ export const inventoryService = {
   ): Promise<MovementWithProduct[]> {
     let q = supabase
       .from('stock_movements')
-      .select('*, batch:batches(code), supplier:suppliers(name), product:products(name)')
+      .select('*, product:products(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -122,7 +115,5 @@ export const inventoryService = {
 };
 
 export interface MovementWithProduct extends StockMovement {
-  batch: { code: string } | null;
-  supplier: { name: string } | null;
   product: { name: string } | null;
 }

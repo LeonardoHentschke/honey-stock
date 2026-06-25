@@ -118,60 +118,6 @@ export interface Database {
         Relationships: [];
       };
 
-      batches: {
-        Row: {
-          id: string;
-          company_id: string;
-          code: string;
-          harvested_at: string | null;
-          expires_at: string | null;
-          notes: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          company_id: string;
-          code: string;
-          harvested_at?: string | null;
-          expires_at?: string | null;
-          notes?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['batches']['Insert'], 'company_id'>>;
-        Relationships: [];
-      };
-
-      suppliers: {
-        Row: {
-          id: string;
-          company_id: string;
-          name: string;
-          document: string | null;
-          phone: string | null;
-          email: string | null;
-          address: string | null;
-          notes: string | null;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          company_id: string;
-          name: string;
-          document?: string | null;
-          phone?: string | null;
-          email?: string | null;
-          address?: string | null;
-          notes?: string | null;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['suppliers']['Insert'], 'company_id'>>;
-        Relationships: [];
-      };
-
       customers: {
         Row: {
           id: string;
@@ -214,11 +160,9 @@ export interface Database {
           id: string;
           company_id: string;
           product_id: string;
-          batch_id: string | null;
           type: StockMovementType;
           quantity: number;
           unit_cost: number | null;
-          supplier_id: string | null;
           reference_type: string | null;
           reference_id: string | null;
           notes: string | null;
@@ -229,11 +173,9 @@ export interface Database {
           id?: string;
           company_id: string;
           product_id: string;
-          batch_id?: string | null;
           type: StockMovementType;
           quantity: number;
           unit_cost?: number | null;
-          supplier_id?: string | null;
           reference_type?: string | null;
           reference_id?: string | null;
           notes?: string | null;
@@ -282,7 +224,6 @@ export interface Database {
           id: string;
           sale_id: string;
           product_id: string;
-          batch_id: string | null;
           quantity: number;
           unit_price: number;
           subtotal: number;
@@ -291,7 +232,6 @@ export interface Database {
           id?: string;
           sale_id: string;
           product_id: string;
-          batch_id?: string | null;
           quantity: number;
           unit_price: number;
           subtotal: number;

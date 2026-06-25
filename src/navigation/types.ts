@@ -25,15 +25,12 @@ export type AppTabsParamList = {
 // ─── More Stack ───────────────────────────────────────────────────────────────
 export type MoreStackParamList = {
   MoreHome: undefined;
-  Batches: undefined;
   Reminders: undefined;
   ReminderDetail: { reminderId: string };
   Reports: undefined;
   Profile: undefined;
   StockMoves: undefined;
   Notifications: undefined;
-  Suppliers: undefined;
-  SupplierDetail: { supplierId: string };
   Team: undefined;
   Settings: undefined;
 };

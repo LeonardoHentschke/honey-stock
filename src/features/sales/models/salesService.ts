@@ -121,7 +121,6 @@ export const salesService = {
     const saleItems = input.items.map((item) => ({
       sale_id: sale.id,
       product_id: item.productId,
-      batch_id: item.batchId ?? null,
       quantity: item.quantity,
       unit_price: item.unitPrice,
       subtotal: item.subtotal,
@@ -167,7 +166,6 @@ export const salesService = {
     const saleItems = input.items.map((item) => ({
       sale_id: sale.id,
       product_id: item.productId,
-      batch_id: item.batchId ?? null,
       quantity: item.quantity,
       unit_price: item.unitPrice,
       subtotal: item.subtotal,

@@ -39,7 +39,7 @@ const TABS: { mode: MovementMode; label: string; Icon: React.ComponentType<{ siz
 export function StockMovementSheet({
   visible, productId, companyId, productLabel, currentStock, onSuccess, onClose,
 }: Props) {
-  const { bottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const [mode, setMode] = useState<MovementMode>('entry');
 
   return (
@@ -51,7 +51,7 @@ export function StockMovementSheet({
     >
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: top + 16 }]}>
           <View style={styles.flex}>
             <Text style={styles.title}>Movimentar estoque</Text>
             <Text style={styles.subtitle}>{productLabel}</Text>
@@ -203,32 +203,6 @@ function MovementForm({
           />
         )}
 
-        {/* Lote (só entrada) */}
-        {mode === 'entry' && vm.batches.length > 0 && (
-          <Controller
-            control={vm.control}
-            name="batch_id"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.field}>
-                <Text style={styles.label}>Lote (opcional)</Text>
-                <View style={styles.chipRow}>
-                  {vm.batches.map((b) => (
-                    <Pressable
-                      key={b.id}
-                      style={[styles.chip, value === b.id && styles.chipActive]}
-                      onPress={() => onChange(value === b.id ? null : b.id)}
-                    >
-                      <Text style={[styles.chipText, value === b.id && styles.chipTextActive]}>
-                        {b.code}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            )}
-          />
-        )}
-
         {/* Notas */}
         <Controller
           control={vm.control}
@@ -333,15 +307,6 @@ const styles = StyleSheet.create({
     fontSize: 13, color: '#B3261E',
     backgroundColor: '#FDECEA', borderRadius: 8, padding: 12,
   },
-
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    borderWidth: 1, borderColor: '#E7E2D9', backgroundColor: '#FFFFFF',
-  },
-  chipActive: { borderColor: '#C47C0A', backgroundColor: '#FCEFC8' },
-  chipText: { fontSize: 13, color: '#6B6258' },
-  chipTextActive: { color: '#9B5F0B', fontWeight: '600' },
 
   adjustWarning: {
     backgroundColor: '#FFF8E1', borderRadius: 8, padding: 12,

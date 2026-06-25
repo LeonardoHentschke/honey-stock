@@ -8,12 +8,15 @@ import type { RootStackParamList } from './types';
 const Root = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, profile } = useAuth();
 
   return (
     <Root.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
-      {isAuthenticated && !isLoading ? (
-        // Sessão válida e carregada → App
+      {isAuthenticated && !isLoading && profile ? (
+        // Sessão válida E perfil carregado → App.
+        // Exigir `profile` evita montar o AppTabs com perfil nulo durante a
+        // race do signup (onAuthStateChange dispara antes dos inserts/reloadProfile),
+        // que causava o flip-flop App↔Auth e o erro "navigation context".
         <Root.Screen name="App" component={AppTabs} />
       ) : (
         // Ainda carregando OU não autenticado → Auth (começa no Splash)
