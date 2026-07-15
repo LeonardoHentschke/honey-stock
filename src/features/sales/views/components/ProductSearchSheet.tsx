@@ -11,7 +11,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Search, Package } from 'lucide-react-native';
+import { ProductTile } from '@/shared/components/ProductTile';
 import { formatCurrency, formatQuantity } from '@/shared/lib/format';
 import type { Product } from '@/features/products/models/productService';
 
@@ -34,6 +36,7 @@ export function ProductSearchSheet({
   onSelect,
   onClose,
 }: Props) {
+  const { top } = useSafeAreaInsets();
   return (
     <Modal
       visible={visible}
@@ -46,7 +49,7 @@ export function ProductSearchSheet({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: top + 16 }]}>
           <Text style={styles.title}>Adicionar produto</Text>
           <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
             <X size={20} color="#6B6258" />
@@ -108,22 +111,35 @@ export function ProductSearchSheet({
 
 function ProductRow({ product, onPress }: { product: Product; onPress: () => void }) {
   const outOfStock = product.stock_quantity <= 0;
+  const isLow = product.stock_quantity <= product.min_stock && product.min_stock > 0;
   return (
     <Pressable
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed, outOfStock && styles.rowDim]}
+      style={[styles.row, outOfStock ? styles.rowDim : null]}
+      android_ripple={{ color: '#FDFAF4' }}
       onPress={onPress}
       disabled={outOfStock}
     >
-      <View style={styles.rowInfo}>
-        <Text style={styles.rowName} numberOfLines={1}>
-          {product.name}
-        </Text>
-      </View>
-      <View style={styles.rowRight}>
-        <Text style={styles.rowPrice}>{formatCurrency(product.sale_price)}</Text>
-        <Text style={[styles.rowStock, outOfStock && styles.rowStockOut]}>
-          {outOfStock ? 'Sem estoque' : formatQuantity(product.stock_quantity, 'un')}
-        </Text>
+      <ProductTile name={product.name} size={56} />
+
+      <View style={styles.rowBody}>
+        <View style={styles.rowTitleRow}>
+          <Text style={styles.rowName} numberOfLines={1}>
+            {product.name}
+          </Text>
+          {isLow && !outOfStock && (
+            <View style={styles.lowStockBadge}>
+              <Text style={styles.lowStockText}>baixo</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.metaRow}>
+          <Text style={styles.rowPrice}>{formatCurrency(product.sale_price)}</Text>
+          <Text style={styles.metaDot}>·</Text>
+          <Text style={[styles.rowStock, (isLow || outOfStock) && styles.rowStockLow]}>
+            {outOfStock ? 'Sem estoque' : formatQuantity(product.stock_quantity, 'un')}
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -165,25 +181,40 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15, color: '#1F1B16' },
   list: { paddingHorizontal: 24, paddingBottom: 32, gap: 8 },
   row: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#1F1B16',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    gap: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E7E2D9',
   },
-  rowPressed: { opacity: 0.7 },
   rowDim: { opacity: 0.5 },
-  rowInfo: { flex: 1, gap: 2 },
-  rowName: { fontSize: 15, fontWeight: '600', color: '#1F1B16' },
-  rowRight: { alignItems: 'flex-end', gap: 2, marginLeft: 12 },
-  rowPrice: { fontSize: 16, fontWeight: '700', color: '#C47C0A' },
+  rowBody: { flex: 1, minWidth: 0, gap: 2 },
+  rowTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rowName: {
+    flexShrink: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: '#1F1B16',
+  },
+  lowStockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FBEAD0',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 9999,
+  },
+  lowStockText: { fontSize: 11, color: '#C77700', fontWeight: '600' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  rowPrice: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: '#1F1B16' },
+  metaDot: { fontSize: 12, color: '#A89E91' },
   rowStock: { fontSize: 12, color: '#6B6258' },
-  rowStockOut: { color: '#B3261E' },
+  rowStockLow: { color: '#C77700', fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
   emptyTitle: { fontSize: 17, fontWeight: '600', color: '#1F1B16', textAlign: 'center' },
   emptyBody: { fontSize: 15, color: '#6B6258', textAlign: 'center' },

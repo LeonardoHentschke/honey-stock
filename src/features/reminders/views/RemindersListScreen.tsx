@@ -32,7 +32,7 @@ export function RemindersListScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
@@ -98,7 +98,8 @@ function ReminderCard({ reminder, onPress }: { reminder: Reminder; onPress: () =
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={styles.card}
+      android_ripple={{ color: 'rgba(31,27,22,0.05)' }}
       onPress={onPress}
     >
       <View style={styles.cardTop}>
@@ -127,9 +128,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 8,
+    gap: 4,
   },
   backBtn: {
     width: 40,
@@ -137,8 +138,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: -8,
   },
-  title: { flex: 1, fontSize: 20, fontWeight: '700', color: '#1F1B16' },
+  title: { flex: 1, fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
   addBtn: {
     width: 40,
     height: 40,
@@ -160,7 +162,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  cardPressed: { opacity: 0.85 },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   cardLeft: { flex: 1, gap: 4 },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#1F1B16' },

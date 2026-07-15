@@ -4,19 +4,18 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   Pressable,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Controller } from 'react-hook-form';
 import { X, ArrowDownToLine, ArrowUpFromLine, Settings2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useStockMovementViewModel } from '../../viewmodels/useStockMovementViewModel';
 import { formatQuantity } from '@/shared/lib/format';
+import { currencyToNumber, numberToCurrencyMask } from '@/shared/lib/mask';
 
 type MovementMode = 'entry' | 'exit' | 'adjust';
 
@@ -115,14 +114,12 @@ function MovementForm({
   const vm = useStockMovementViewModel({ productId, companyId, mode, onSuccess });
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
+    <View style={styles.flex}>
+      <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
         {mode === 'adjust' && (
           <View style={styles.adjustWarning}>
@@ -191,8 +188,8 @@ function MovementForm({
                 <Text style={styles.label}>Custo unitário (R$) — opcional</Text>
                 <TextInput
                   style={styles.input}
-                  value={value ? String(value) : ''}
-                  onChangeText={(t) => onChange(t ? parseFloat(t.replace(',', '.')) || null : null)}
+                  value={numberToCurrencyMask(value ?? 0)}
+                  onChangeText={(t) => onChange(currencyToNumber(t) || null)}
                   onBlur={onBlur}
                   placeholder="0,00"
                   placeholderTextColor="#A89E91"
@@ -228,7 +225,7 @@ function MovementForm({
         {vm.submitError && (
           <Text style={styles.submitError}>{vm.submitError}</Text>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: bottom + 16 }]}>
         <Pressable
@@ -246,7 +243,7 @@ function MovementForm({
           )}
         </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -1,12 +1,11 @@
 import { supabase } from '@/shared/lib/supabase';
 import { ServiceError } from '@/shared/lib/errors';
-import type { SaleChannel, PaymentMethod } from '@/features/sales/models/salesService';
+import type { PaymentMethod } from '@/features/sales/models/salesService';
 
 export interface RawSale {
   id: string;
   total: number;
   discount: number;
-  channel: SaleChannel;
   payment_method: PaymentMethod;
   created_at: string;
 }
@@ -31,7 +30,7 @@ export const reportsService = {
   ): Promise<RawSale[]> {
     const { data, error } = await supabase
       .from('sales')
-      .select('id, total, discount, channel, payment_method, created_at')
+      .select('id, total, discount, payment_method, created_at')
       .eq('company_id', companyId)
       .in('status', ['completed', 'delivered'])
       .gte('created_at', start.toISOString())

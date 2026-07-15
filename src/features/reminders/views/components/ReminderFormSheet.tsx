@@ -5,14 +5,13 @@ import {
   TextInput,
   Pressable,
   Modal,
-  ScrollView,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { X, CheckCircle, Circle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DateTimeField } from '@/shared/components/DateTimeField';
 import { useReminderFormViewModel } from '../../viewmodels/useReminderFormViewModel';
 
 interface Props {
@@ -20,19 +19,7 @@ interface Props {
   onClose: () => void;
   prefilledSaleId?: string;
   prefilledRemindAt?: Date;
-}
-
-function applyDateMask(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 8);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-}
-
-function applyTimeMask(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  prefilledCustomerName?: string;
 }
 
 export function ReminderFormSheet({
@@ -40,11 +27,13 @@ export function ReminderFormSheet({
   onClose,
   prefilledSaleId,
   prefilledRemindAt,
+  prefilledCustomerName,
 }: Props) {
-  const { bottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const vm = useReminderFormViewModel({
     prefilledSaleId,
     prefilledRemindAt,
+    prefilledCustomerName,
     onSuccess: onClose,
   });
 
@@ -55,22 +44,20 @@ export function ReminderFormSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.root}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <View style={styles.root}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: top + 16 }]}>
           <Text style={styles.headerTitle}>Novo lembrete</Text>
           <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
             <X size={22} color="#1F1B16" />
           </Pressable>
         </View>
 
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.scroll}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: bottom + 24 }]}
           keyboardShouldPersistTaps="handled"
+          bottomOffset={24}
         >
           {/* Título */}
           <View style={styles.fieldBlock}>
@@ -81,6 +68,7 @@ export function ReminderFormSheet({
               onChangeText={vm.setTitle}
               placeholder="Ex: Entregar ao João"
               placeholderTextColor="#A89E91"
+              selectTextOnFocus
             />
           </View>
 
@@ -102,26 +90,19 @@ export function ReminderFormSheet({
           <View style={styles.dateRow}>
             <View style={styles.dateField}>
               <Text style={styles.fieldLabel}>Data *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={vm.scheduledDateText}
-                onChangeText={(t) => vm.setScheduledDateText(applyDateMask(t))}
-                placeholder="DD/MM/AAAA"
-                placeholderTextColor="#A89E91"
-                keyboardType="numeric"
-                maxLength={10}
+              <DateTimeField
+                mode="date"
+                value={vm.remindAt}
+                onChange={vm.setRemindAt}
+                minimumDate={new Date()}
               />
             </View>
             <View style={styles.dateField}>
               <Text style={styles.fieldLabel}>Hora *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={vm.scheduledTimeText}
-                onChangeText={(t) => vm.setScheduledTimeText(applyTimeMask(t))}
-                placeholder="HH:MM"
-                placeholderTextColor="#A89E91"
-                keyboardType="numeric"
-                maxLength={5}
+              <DateTimeField
+                mode="time"
+                value={vm.remindAt}
+                onChange={vm.setRemindAt}
               />
             </View>
           </View>
@@ -173,8 +154,8 @@ export function ReminderFormSheet({
               <Text style={styles.submitBtnText}>Salvar lembrete</Text>
             )}
           </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+      </View>
     </Modal>
   );
 }

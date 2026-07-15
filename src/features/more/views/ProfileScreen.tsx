@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, User } from 'lucide-react-native';
+import { ArrowLeft, User } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -36,11 +36,10 @@ export function ProfileScreen() {
     <View style={[styles.root, { paddingTop: top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
-          <ChevronLeft size={24} color="#1F1B16" />
+        <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={8}>
+          <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
         <Text style={styles.title}>Perfil</Text>
-        <View style={styles.backBtn} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
@@ -87,18 +86,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingVertical: 12,
+    gap: 4,
   },
   backBtn: {
     width: 40,
-    alignItems: 'flex-start',
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -8,
   },
   title: {
-    fontSize: 17,
-    lineHeight: 24,
-    fontWeight: '600',
+    flex: 1,
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: '700',
     color: '#1F1B16',
   },
   content: {

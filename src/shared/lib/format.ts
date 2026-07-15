@@ -23,6 +23,11 @@ const DATETIME_FORMATTER = new Intl.DateTimeFormat('pt-BR', {
   minute: '2-digit',
 });
 
+const TIME_FORMATTER = new Intl.DateTimeFormat('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 /** R$ 1.234,56 */
 export function formatCurrency(value: number): string {
   const n = Number(value);
@@ -37,6 +42,11 @@ export function formatDate(date: Date): string {
 /** 25/05/2026 14:30 */
 export function formatDateTime(date: Date): string {
   return DATETIME_FORMATTER.format(date);
+}
+
+/** 14:30 */
+export function formatTime(date: Date): string {
+  return TIME_FORMATTER.format(date);
 }
 
 /** "1,5 kg" ou "500 g" */

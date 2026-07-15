@@ -11,6 +11,8 @@ import { StockMovesScreen }      from '@/features/inventory/views/StockMovesScre
 import { NotificationsScreen }   from '@/features/notifications/views/NotificationsScreen';
 import { TeamScreen }            from '@/features/more/views/TeamScreen';
 import { SettingsScreen }        from '@/features/more/views/SettingsScreen';
+import { SalesListScreen }       from '@/features/sales/views/SalesListScreen';
+import { SaleDetailScreen }      from '@/features/sales/views/SaleDetailScreen';
 
 const Stack = createNativeStackNavigator<MoreStackParamList>();
 
@@ -26,6 +28,8 @@ export function MoreStack() {
       <Stack.Screen name="Notifications"   component={NotificationsScreen} />
       <Stack.Screen name="Team"            component={TeamScreen} />
       <Stack.Screen name="Settings"        component={SettingsScreen} />
+      <Stack.Screen name="SalesHistory"    component={SalesListScreen} />
+      <Stack.Screen name="SaleDetail"      component={SaleDetailScreen} />
     </Stack.Navigator>
   );
 }

@@ -3,9 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { reportsService } from '../models/reportsService';
 import {
-  CHANNEL_LABELS,
   PAYMENT_LABELS,
-  type SaleChannel,
   type PaymentMethod,
 } from '@/features/sales/models/salesService';
 
@@ -127,23 +125,6 @@ export function useReportsViewModel() {
       .map(([label, qty], index) => ({ index, label, qty }));
   }, [itemsQuery.data]);
 
-  const byChannel = useMemo<BreakdownRow[]>(() => {
-    const sales = salesQuery.data ?? [];
-    const map: Record<string, number> = {};
-    sales.forEach((s) => {
-      map[s.channel] = (map[s.channel] ?? 0) + s.total;
-    });
-    const total = Object.values(map).reduce((s, v) => s + v, 0);
-    return Object.entries(map)
-      .sort(([, a], [, b]) => b - a)
-      .map(([key, value]) => ({
-        key,
-        label: CHANNEL_LABELS[key as SaleChannel] ?? key,
-        total: value,
-        pct: total > 0 ? Math.round((value / total) * 100) : 0,
-      }));
-  }, [salesQuery.data]);
-
   const byPayment = useMemo<BreakdownRow[]>(() => {
     const sales = salesQuery.data ?? [];
     const map: Record<string, number> = {};
@@ -176,7 +157,6 @@ export function useReportsViewModel() {
     salesSummary,
     salesByDay,
     topProducts,
-    byChannel,
     byPayment,
     lowStockProducts: lowStockQuery.data ?? [],
     isLoading,

@@ -13,7 +13,7 @@ import type { AppTabsParamList } from './types';
 
 import { DashboardScreen } from '@/features/dashboard/views/DashboardScreen';
 import { ProductsStack } from './ProductsStack';
-import { SalesStack } from './SalesStack';
+import { NewSaleScreen } from '@/features/sales/views/NewSaleScreen';
 import { ContactsStack } from './ContactsStack';
 import { MoreStack } from './MoreStack';
 
@@ -74,7 +74,7 @@ export function AppTabs() {
       />
       <Tab.Screen
         name="Sales"
-        component={SalesStack}
+        component={NewSaleScreen}
         options={{
           title: 'Vendas',
           tabBarIcon: ({ focused }) => (

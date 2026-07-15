@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProductListViewModel } from '../viewmodels/useProductListViewModel';
 import { ProductFormSheet } from './components/ProductFormSheet';
-import { StockMovementSheet } from '@/features/inventory/views/components/StockMovementSheet';
 import { ProductTile } from '@/shared/components/ProductTile';
 import { formatCurrency, formatQuantity } from '@/shared/lib/format';
 import type { Product } from '../models/productService';
@@ -79,7 +78,6 @@ export function ProductListScreen() {
             <ProductRow
               product={item}
               onPress={() => vm.navigateToDetail(item.id)}
-              onAddStock={() => vm.openStockEntry(item)}
             />
           )}
           contentContainerStyle={vm.isEmpty ? styles.flex : styles.listContent}
@@ -108,18 +106,6 @@ export function ProductListScreen() {
         onClose={() => vm.setShowCreateSheet(false)}
       />
 
-      {/* ── Entrada de estoque (botão + da linha) ──────────── */}
-      {vm.stockProduct && (
-        <StockMovementSheet
-          visible
-          productId={vm.stockProduct.id}
-          companyId={vm.companyId}
-          productLabel={vm.stockProduct.name}
-          currentStock={vm.stockProduct.stock_quantity}
-          onSuccess={vm.refresh}
-          onClose={vm.closeStockEntry}
-        />
-      )}
     </View>
   );
 }
@@ -153,11 +139,9 @@ function FilterChip({
 function ProductRow({
   product,
   onPress,
-  onAddStock,
 }: {
   product: Product;
   onPress: () => void;
-  onAddStock: () => void;
 }) {
   const isLow = product.stock_quantity <= product.min_stock && product.min_stock > 0;
 
@@ -190,14 +174,6 @@ function ProductRow({
         </View>
       </View>
 
-      <Pressable
-        style={styles.addStockBtn}
-        onPress={onAddStock}
-        accessibilityLabel={`Adicionar estoque de ${product.name}`}
-        hitSlop={6}
-      >
-        <Plus size={20} color="#FFFFFF" />
-      </Pressable>
     </Pressable>
   );
 }
@@ -297,20 +273,6 @@ const styles = StyleSheet.create({
     borderColor: '#E7E2D9',
   },
   cardPressed: { backgroundColor: '#FDFAF4' },
-
-  addStockBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E89B12',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#E89B12',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
-  },
 
   cardBody: { flex: 1, minWidth: 0, gap: 2 },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

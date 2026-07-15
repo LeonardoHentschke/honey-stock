@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,24 +8,25 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { ArrowLeft, User, Truck, CreditCard, CalendarClock, BellPlus } from 'lucide-react-native';
+import { ArrowLeft, User, CreditCard, CalendarClock, BellPlus, Wallet } from 'lucide-react-native';
 import { ReminderFormSheet } from '@/features/reminders/views/components/ReminderFormSheet';
+import { PaymentSheet } from './components/PaymentSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { formatCurrency, formatDateTime } from '@/shared/lib/format';
+import { formatCurrency, formatDate, formatDateTime } from '@/shared/lib/format';
 import { useSaleDetailViewModel } from '../viewmodels/useSaleDetailViewModel';
 import {
-  CHANNEL_LABELS,
   PAYMENT_LABELS,
   STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
   type SaleStatus,
-  type SaleChannel,
+  type PaymentStatus,
   type PaymentMethod,
   type SaleItemWithProduct,
 } from '../models/salesService';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { SalesStackParamList } from '@/navigation/types';
+import type { MoreStackParamList } from '@/navigation/types';
 
-type Props = NativeStackScreenProps<SalesStackParamList, 'SaleDetail'>;
+type Props = NativeStackScreenProps<MoreStackParamList, 'SaleDetail'>;
 
 const STATUS_COLORS: Record<SaleStatus, { bg: string; text: string }> = {
   completed: { bg: '#D1FAE5', text: '#065F46' },
@@ -34,10 +35,26 @@ const STATUS_COLORS: Record<SaleStatus, { bg: string; text: string }> = {
   canceled: { bg: '#FEE2E2', text: '#991B1B' },
 };
 
+const PAYMENT_STATUS_COLORS: Record<PaymentStatus, { bg: string; text: string }> = {
+  paid: { bg: '#D1FAE5', text: '#065F46' },
+  partial: { bg: '#FEF3C7', text: '#92400E' },
+  pending: { bg: '#FEE2E2', text: '#991B1B' },
+};
+
 export function SaleDetailScreen({ route, navigation }: Props) {
   const { saleId } = route.params;
   const { top, bottom } = useSafeAreaInsets();
   const vm = useSaleDetailViewModel(saleId);
+  const [showReminderSheet, setShowReminderSheet] = useState(false);
+  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
+
+  // Fecha o sheet de pagamento após registrar com sucesso.
+  useEffect(() => {
+    if (vm.isPaymentRegistered) {
+      setShowPaymentSheet(false);
+      vm.resetPaymentMutation();
+    }
+  }, [vm.isPaymentRegistered, vm.resetPaymentMutation]);
 
   function handleCancel() {
     Alert.alert(
@@ -87,8 +104,6 @@ export function SaleDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  const [showReminderSheet, setShowReminderSheet] = useState(false);
-
   const { sale } = vm;
   const status = sale.status as SaleStatus;
   const statusColors = STATUS_COLORS[status];
@@ -100,7 +115,7 @@ export function SaleDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
@@ -136,10 +151,6 @@ export function SaleDetailScreen({ route, navigation }: Props) {
 
           <View style={styles.metaDivider} />
 
-          <View style={styles.metaRow}>
-            <Truck size={15} color="#A89E91" />
-            <Text style={styles.metaText}>{CHANNEL_LABELS[sale.channel as SaleChannel]}</Text>
-          </View>
           <View style={styles.metaRow}>
             <CreditCard size={15} color="#A89E91" />
             <Text style={styles.metaText}>{PAYMENT_LABELS[sale.payment_method as PaymentMethod]}</Text>
@@ -195,27 +206,121 @@ export function SaleDetailScreen({ route, navigation }: Props) {
           </View>
         </View>
 
-        {/* Data de entrega agendada */}
-        {isDeliverable && sale.scheduled_for ? (
+        {/* Pagamento */}
+        {status !== 'canceled' ? (
           <>
-            <View style={styles.scheduledCard}>
-              <CalendarClock size={16} color="#1E40AF" />
-              <Text style={styles.scheduledText}>
-                Entrega agendada: {formatDateTime(new Date(sale.scheduled_for))}
-              </Text>
+            <Text style={styles.sectionLabel}>Pagamento</Text>
+            <View style={styles.card}>
+              <View style={styles.payHeaderRow}>
+                <View style={styles.payMethodRow}>
+                  <Wallet size={15} color="#A89E91" />
+                  <Text style={styles.payMethodText}>
+                    {PAYMENT_LABELS[sale.payment_method as PaymentMethod]}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.payBadge,
+                    { backgroundColor: PAYMENT_STATUS_COLORS[vm.paymentStatus].bg },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.payBadgeText,
+                      { color: PAYMENT_STATUS_COLORS[vm.paymentStatus].text },
+                    ]}
+                  >
+                    {PAYMENT_STATUS_LABELS[vm.paymentStatus]}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.totalDivider} />
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Pago</Text>
+                <Text style={styles.totalValue}>{formatCurrency(vm.paid)}</Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.grandTotalLabel}>Falta</Text>
+                <Text
+                  style={[styles.grandTotalValue, vm.balance > 0 ? styles.balanceDue : null]}
+                >
+                  {formatCurrency(vm.balance)}
+                </Text>
+              </View>
+
+              {vm.payments.length > 0 ? (
+                <>
+                  <View style={styles.totalDivider} />
+                  {vm.payments.map((p) => (
+                    <View key={p.id} style={styles.paymentRow}>
+                      <Text style={styles.paymentDate}>
+                        {formatDate(new Date(p.paid_at))} · {PAYMENT_LABELS[p.method as PaymentMethod]}
+                      </Text>
+                      <Text style={styles.paymentAmount}>{formatCurrency(p.amount)}</Text>
+                    </View>
+                  ))}
+                </>
+              ) : null}
+
+              {/* Ação contextual: registrar pagamento fica junto do saldo */}
+              {vm.balance > 0 ? (
+                <Pressable style={styles.payInlineBtn} onPress={() => setShowPaymentSheet(true)}>
+                  <Wallet size={15} color="#9B5F0B" />
+                  <Text style={styles.payInlineBtnText}>Registrar pagamento</Text>
+                </Pressable>
+              ) : null}
             </View>
-            <Pressable
-              style={styles.reminderBtn}
-              onPress={() => setShowReminderSheet(true)}
-            >
-              <BellPlus size={16} color="#C47C0A" />
-              <Text style={styles.reminderBtnText}>Criar lembrete para esta entrega</Text>
-            </Pressable>
+
+            {vm.registerPaymentError ? (
+              <Text style={styles.errorText}>{vm.registerPaymentError}</Text>
+            ) : null}
           </>
         ) : null}
 
-        {/* Marcar como Entregue */}
-        {isDeliverable ? (
+        {/* Data de entrega agendada — sino cria lembrete */}
+        {isDeliverable && sale.scheduled_for ? (
+          <View style={styles.scheduledCard}>
+            <CalendarClock size={16} color="#1E40AF" />
+            <Text style={styles.scheduledText}>
+              Entrega agendada: {formatDateTime(new Date(sale.scheduled_for))}
+            </Text>
+            <Pressable
+              style={styles.bellBtn}
+              hitSlop={6}
+              onPress={() => setShowReminderSheet(true)}
+            >
+              <BellPlus size={16} color="#C47C0A" />
+            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Cancelar — ação destrutiva discreta */}
+        {isCancelable ? (
+          <Pressable
+            style={styles.cancelLink}
+            onPress={handleCancel}
+            disabled={vm.isCanceling}
+          >
+            {vm.isCanceling ? (
+              <ActivityIndicator color="#B3261E" size="small" />
+            ) : (
+              <Text style={styles.cancelLinkText}>Cancelar venda</Text>
+            )}
+          </Pressable>
+        ) : null}
+
+        {vm.cancelError ? (
+          <Text style={styles.errorText}>{vm.cancelError}</Text>
+        ) : null}
+      </ScrollView>
+
+      {/* Ação primária fixa: marcar como entregue */}
+      {isDeliverable ? (
+        <View style={[styles.footer, { paddingBottom: bottom + 6 }]}>
+          {vm.deliverError ? (
+            <Text style={styles.errorText}>{vm.deliverError}</Text>
+          ) : null}
           <Pressable
             style={[styles.deliverBtn, vm.isDelivering && styles.deliverBtnDisabled]}
             onPress={handleDeliver}
@@ -227,31 +332,8 @@ export function SaleDetailScreen({ route, navigation }: Props) {
               <Text style={styles.deliverBtnText}>Marcar como Entregue</Text>
             )}
           </Pressable>
-        ) : null}
-
-        {vm.deliverError ? (
-          <Text style={styles.errorText}>{vm.deliverError}</Text>
-        ) : null}
-
-        {/* Cancelar */}
-        {isCancelable ? (
-          <Pressable
-            style={[styles.cancelBtn, vm.isCanceling && styles.cancelBtnDisabled]}
-            onPress={handleCancel}
-            disabled={vm.isCanceling}
-          >
-            {vm.isCanceling ? (
-              <ActivityIndicator color="#B3261E" />
-            ) : (
-              <Text style={styles.cancelBtnText}>Cancelar venda</Text>
-            )}
-          </Pressable>
-        ) : null}
-
-        {vm.cancelError ? (
-          <Text style={styles.errorText}>{vm.cancelError}</Text>
-        ) : null}
-      </ScrollView>
+        </View>
+      ) : null}
 
       {isDeliverable && sale.scheduled_for ? (
         <ReminderFormSheet
@@ -259,8 +341,18 @@ export function SaleDetailScreen({ route, navigation }: Props) {
           onClose={() => setShowReminderSheet(false)}
           prefilledSaleId={sale.id}
           prefilledRemindAt={new Date(sale.scheduled_for)}
+          prefilledCustomerName={customer?.name ?? 'Cliente avulso'}
         />
       ) : null}
+
+      <PaymentSheet
+        visible={showPaymentSheet}
+        balance={vm.balance}
+        isSubmitting={vm.isRegisteringPayment}
+        error={vm.registerPaymentError}
+        onSubmit={vm.registerPayment}
+        onClose={() => setShowPaymentSheet(false)}
+      />
     </View>
   );
 }
@@ -276,22 +368,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 12,
+    gap: 4,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1F1B16',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    marginLeft: -8,
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#1F1B16', flex: 1 },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16', flex: 1 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 12, fontWeight: '700' },
 
@@ -332,18 +419,45 @@ const styles = StyleSheet.create({
   grandTotalLabel: { fontSize: 17, fontWeight: '700', color: '#1F1B16' },
   grandTotalValue: { fontSize: 22, fontWeight: '700', color: '#C47C0A' },
 
-  reminderBtn: {
-    flexDirection: 'row',
+  bellBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FCEFC8',
     alignItems: 'center',
-    gap: 8,
-    borderWidth: 1.5,
-    borderColor: '#C47C0A',
-    borderRadius: 14,
-    height: 44,
-    paddingHorizontal: 16,
     justifyContent: 'center',
   },
-  reminderBtnText: { fontSize: 14, fontWeight: '600', color: '#C47C0A' },
+
+  payHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  payMethodRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  payMethodText: { fontSize: 15, color: '#3B342B' },
+  payBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  payBadgeText: { fontSize: 12, fontWeight: '700' },
+  balanceDue: { color: '#B3261E' },
+  paymentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  paymentDate: { fontSize: 13, color: '#6B6258' },
+  paymentAmount: { fontSize: 14, color: '#1F1B16', fontWeight: '600' },
+  payInlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-end',
+    backgroundColor: '#FCEFC8',
+    borderRadius: 10,
+    height: 40,
+    paddingHorizontal: 14,
+    marginTop: 4,
+  },
+  payInlineBtnText: { fontSize: 14, fontWeight: '600', color: '#9B5F0B' },
 
   scheduledCard: {
     flexDirection: 'row',
@@ -358,29 +472,29 @@ const styles = StyleSheet.create({
 
   deliverBtn: {
     backgroundColor: '#C47C0A',
-    borderRadius: 14,
-    height: 52,
+    borderRadius: 12,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#C47C0A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   deliverBtnDisabled: { opacity: 0.6 },
-  deliverBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
+  deliverBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
 
-  cancelBtn: {
-    borderWidth: 1.5,
-    borderColor: '#B3261E',
-    borderRadius: 14,
-    height: 48,
+  cancelLink: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 12,
   },
-  cancelBtnDisabled: { opacity: 0.5 },
-  cancelBtnText: { fontSize: 15, fontWeight: '700', color: '#B3261E' },
+  cancelLinkText: { fontSize: 14, fontWeight: '600', color: '#B3261E' },
+
+  footer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E7E2D9',
+    gap: 6,
+  },
 
   errorText: { fontSize: 14, color: '#B3261E', textAlign: 'center' },
   backLink: { marginTop: 12 },

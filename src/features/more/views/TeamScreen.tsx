@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import {
   View, Text, FlatList, Pressable, StyleSheet,
-  ActivityIndicator, Modal, Share, RefreshControl,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Copy, UserPlus } from 'lucide-react-native';
+import { ArrowLeft, UserPlus } from 'lucide-react-native';
 import { supabase } from '@/shared/lib/supabase';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getInviteCode } from '@/features/auth/models/authService';
+import { InviteCodeModal } from '@/shared/components/InviteCodeModal';
 
 interface Member {
   id: string;
@@ -53,14 +54,9 @@ export function TeamScreen() {
     staleTime: 10 * 60_000,
   });
 
-  const handleShare = async () => {
-    if (!inviteQuery.data) return;
-    await Share.share({ message: `Entre no Mel Manager com o código de convite: ${inviteQuery.data}` });
-  };
-
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.back}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
@@ -111,42 +107,13 @@ export function TeamScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
       />
 
-      {/* Modal convite */}
-      <Modal
+      {/* Modal convite — compartilhado com a tela Mais */}
+      <InviteCodeModal
         visible={inviteVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setInviteVisible(false)}
-      >
-        <Pressable style={styles.overlay} onPress={() => setInviteVisible(false)}>
-          <Pressable style={styles.inviteCard} onPress={() => {}}>
-            <Text style={styles.inviteTitle}>Código de convite</Text>
-            <Text style={styles.inviteSub}>Compartilhe com quem vai entrar na empresa</Text>
-
-            {inviteQuery.isLoading ? (
-              <ActivityIndicator size="large" color="#E89B12" style={{ marginVertical: 24 }} />
-            ) : (
-              <View style={styles.codeBox}>
-                <Text style={styles.codeText}>{inviteQuery.data ?? '——'}</Text>
-              </View>
-            )}
-
-            <View style={styles.inviteActions}>
-              <Pressable
-                style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}
-                onPress={handleShare}
-                disabled={!inviteQuery.data}
-              >
-                <Copy size={16} color="#9B5F0B" />
-                <Text style={styles.shareBtnText}>Compartilhar</Text>
-              </Pressable>
-              <Pressable style={styles.closeBtn} onPress={() => setInviteVisible(false)}>
-                <Text style={styles.closeBtnText}>Fechar</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        code={inviteQuery.data}
+        isLoading={inviteQuery.isLoading}
+        onClose={() => setInviteVisible(false)}
+      />
     </View>
   );
 }
@@ -157,12 +124,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 8,
+    gap: 4,
   },
-  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
-  title: { flex: 1, fontSize: 20, lineHeight: 28, fontWeight: '700', color: '#1F1B16' },
+  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, marginLeft: -8 },
+  title: { flex: 1, fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
   addBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: '#FCEFC8' },
 
   list: { paddingHorizontal: 16, paddingBottom: 32 },
@@ -193,15 +160,4 @@ const styles = StyleSheet.create({
 
   empty: { textAlign: 'center', color: '#A89E91', marginTop: 48, fontSize: 14 },
 
-  overlay: { flex: 1, backgroundColor: 'rgba(31,27,22,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  inviteCard: { width: '100%', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, alignItems: 'center' },
-  inviteTitle: { fontSize: 20, fontWeight: '700', color: '#1F1B16', marginBottom: 6 },
-  inviteSub: { fontSize: 14, color: '#6B6258', textAlign: 'center', marginBottom: 20 },
-  codeBox: { backgroundColor: '#FCEFC8', borderRadius: 12, paddingVertical: 20, paddingHorizontal: 32, marginBottom: 24, borderWidth: 1, borderColor: '#F9DE91' },
-  codeText: { fontSize: 32, fontWeight: '700', color: '#9B5F0B', letterSpacing: 6 },
-  inviteActions: { width: '100%', gap: 10 },
-  shareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FCEFC8', borderRadius: 12, paddingVertical: 14 },
-  shareBtnText: { fontSize: 15, fontWeight: '600', color: '#9B5F0B' },
-  closeBtn: { alignItems: 'center', paddingVertical: 12 },
-  closeBtnText: { fontSize: 15, fontWeight: '500', color: '#6B6258' },
 });

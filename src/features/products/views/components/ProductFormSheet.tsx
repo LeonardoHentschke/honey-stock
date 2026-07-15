@@ -4,17 +4,16 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   Pressable,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Controller, type Control } from 'react-hook-form';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { currencyToNumber, numberToCurrencyMask } from '@/shared/lib/mask';
 import { useProductFormViewModel } from '../../viewmodels/useProductFormViewModel';
 import type { Product } from '../../models/productService';
 import type { CreateProductValues } from '../../models/productSchemas';
@@ -28,7 +27,7 @@ interface Props {
 }
 
 export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }: Props) {
-  const { bottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const vm = useProductFormViewModel({
     mode,
     product,
@@ -45,13 +44,9 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={styles.container}>
+      <View style={styles.container}>
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: top + 16 }]}>
             <Text style={styles.title}>
               {mode === 'create' ? 'Novo produto' : 'Editar produto'}
             </Text>
@@ -60,10 +55,11 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
             </Pressable>
           </View>
 
-          <ScrollView
+          <KeyboardAwareScrollView
             style={styles.flex}
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
+            bottomOffset={24}
           >
             {/* Nome */}
             <Controller
@@ -96,6 +92,7 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
                 label="Preço de venda *"
                 placeholder="0,00"
                 prefix="R$"
+                currency
                 error={vm.errors.sale_price?.message}
               />
               <NumberField
@@ -104,6 +101,7 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
                 label="Custo"
                 placeholder="0,00"
                 prefix="R$"
+                currency
                 error={vm.errors.cost_price?.message}
               />
             </View>
@@ -153,7 +151,7 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
             {vm.submitError && (
               <Text style={styles.submitError}>{vm.submitError}</Text>
             )}
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           {/* Footer */}
           <View style={[styles.footer, { paddingBottom: bottom + 16 }]}>
@@ -169,8 +167,7 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
               )}
             </Pressable>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -183,6 +180,7 @@ function NumberField({
   label,
   placeholder,
   prefix,
+  currency = false,
   error,
 }: {
   control: Control<CreateProductValues>;
@@ -190,6 +188,7 @@ function NumberField({
   label: string;
   placeholder: string;
   prefix?: string;
+  currency?: boolean;
   error?: string;
 }) {
   return (
@@ -203,8 +202,18 @@ function NumberField({
             {prefix && <Text style={styles.prefix}>{prefix}</Text>}
             <TextInput
               style={styles.inputInner}
-              value={value ? String(value).replace('.', ',') : ''}
+              value={
+                currency
+                  ? numberToCurrencyMask(value)
+                  : value
+                    ? String(value).replace('.', ',')
+                    : ''
+              }
               onChangeText={(t) => {
+                if (currency) {
+                  onChange(currencyToNumber(t));
+                  return;
+                }
                 const normalized = t.replace(/[^0-9,.]/g, '').replace(',', '.');
                 const num = parseFloat(normalized);
                 onChange(isNaN(num) ? 0 : num);

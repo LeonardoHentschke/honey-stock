@@ -2,6 +2,8 @@ import React, { useCallback } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
@@ -14,6 +16,7 @@ import { View, ActivityIndicator } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { AppToast } from '@/shared/components/AppToast';
 import { useAuthListener } from '@/shared/hooks/useAuth';
 import { useNotifications } from '@/shared/hooks/useNotifications';
 import type { RootStackParamList } from '@/navigation/types';
@@ -47,7 +50,7 @@ function AppContent() {
       if (!navigationRef.isReady()) return;
       if (data.sale_id) {
         navigationRef.navigate('App', {
-          screen: 'Sales',
+          screen: 'More',
           params: { screen: 'SaleDetail', params: { saleId: data.sale_id } },
         });
       } else if (data.reminder_id) {
@@ -82,13 +85,18 @@ export default function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef}>
-          <StatusBar style="dark" backgroundColor="#F5F1EA" />
-          <AppContent />
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+            <NavigationContainer ref={navigationRef}>
+              <StatusBar style="dark" backgroundColor="#F5F1EA" />
+              <AppContent />
+              <AppToast />
+            </NavigationContainer>
+          </KeyboardProvider>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

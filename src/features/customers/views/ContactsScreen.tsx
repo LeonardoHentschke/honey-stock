@@ -22,7 +22,6 @@ import type { ContactsStackParamList } from '@/navigation/types';
 type Nav = NativeStackNavigationProp<ContactsStackParamList>;
 
 /** Item do grid: cliente real ou espaçador invisível (mantém card ímpar com metade da largura). */
-type GridItem = Customer | { id: '__spacer__'; spacer: true };
 
 const TABS: { key: ContactsTab; label: string }[] = [
   { key: 'final', label: 'Final' },
@@ -102,12 +101,8 @@ export function ContactsScreen() {
           />
         </View>
       ) : (
-        <FlatList<GridItem>
-          data={
-            vm.customers.length % 2 === 1
-              ? [...vm.customers, { id: '__spacer__', spacer: true }]
-              : vm.customers
-          }
+        <FlatList<Customer>
+          data={vm.customers}
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
@@ -120,16 +115,12 @@ export function ContactsScreen() {
               colors={['#C47C0A']}
             />
           }
-          renderItem={({ item }) =>
-            'spacer' in item ? (
-              <View style={styles.cardSpacer} />
-            ) : (
-              <CustomerCard
-                customer={item}
-                onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
-              />
-            )
-          }
+          renderItem={({ item }) => (
+            <CustomerCard
+              customer={item}
+              onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
+            />
+          )}
         />
       )}
 
@@ -222,9 +213,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingBottom: 8,
+    paddingBottom: 12,
   },
-  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16', letterSpacing: -0.2 },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
   addBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#FCEFC8', alignItems: 'center', justifyContent: 'center',
@@ -260,12 +251,11 @@ const styles = StyleSheet.create({
 
   // Grid
   gridContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
-  columnWrapper: { gap: 12, marginBottom: 12 },
-  cardSpacer: { flex: 1 },
+  columnWrapper: { justifyContent: 'space-between', marginBottom: 12 },
 
   // Card tile
   card: {
-    flex: 1,
+    width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,

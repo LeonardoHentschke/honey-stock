@@ -32,7 +32,7 @@ export function ReportsScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
@@ -87,21 +87,23 @@ export function ReportsScreen() {
           <View style={styles.card}>
             {vm.salesByDay.length > 1 ? (
               <>
-                <CartesianChart
-                  data={vm.salesByDay}
-                  xKey="day"
-                  yKeys={['total']}
-                  domainPadding={{ top: 20, bottom: 0 }}
-                >
-                  {({ points }) => (
-                    <Line
-                      points={points.total}
-                      color="#E89B12"
-                      strokeWidth={2.5}
-                      animate={{ type: 'timing', duration: 300 }}
-                    />
-                  )}
-                </CartesianChart>
+                <View style={styles.chart}>
+                  <CartesianChart
+                    data={vm.salesByDay}
+                    xKey="day"
+                    yKeys={['total']}
+                    domainPadding={{ top: 20, bottom: 0 }}
+                  >
+                    {({ points }) => (
+                      <Line
+                        points={points.total}
+                        color="#E89B12"
+                        strokeWidth={2.5}
+                        animate={{ type: 'timing', duration: 300 }}
+                      />
+                    )}
+                  </CartesianChart>
+                </View>
                 <ChartXLabels points={vm.salesByDay} />
               </>
             ) : (
@@ -117,35 +119,27 @@ export function ReportsScreen() {
           <View style={styles.card}>
             {vm.topProducts.length > 0 ? (
               <>
-                <CartesianChart
-                  data={vm.topProducts}
-                  xKey="index"
-                  yKeys={['qty']}
-                  domainPadding={{ left: 20, right: 20, top: 20 }}
-                >
-                  {({ points, chartBounds }) => (
-                    <Bar
-                      points={points.qty}
-                      chartBounds={chartBounds}
-                      color="#C47C0A"
-                      animate={{ type: 'timing', duration: 300 }}
-                    />
-                  )}
-                </CartesianChart>
+                <View style={styles.chart}>
+                  <CartesianChart
+                    data={vm.topProducts}
+                    xKey="index"
+                    yKeys={['qty']}
+                    domainPadding={{ left: 20, right: 20, top: 20 }}
+                  >
+                    {({ points, chartBounds }) => (
+                      <Bar
+                        points={points.qty}
+                        chartBounds={chartBounds}
+                        color="#C47C0A"
+                        animate={{ type: 'timing', duration: 300 }}
+                      />
+                    )}
+                  </CartesianChart>
+                </View>
                 <BarLegend items={vm.topProducts} />
               </>
             ) : (
               <EmptyChart message="Nenhuma venda com produtos no período." />
-            )}
-          </View>
-
-          {/* Por canal */}
-          <SectionHeader style={styles.sectionHeader}>Por canal de venda</SectionHeader>
-          <View style={styles.card}>
-            {vm.byChannel.length > 0 ? (
-              vm.byChannel.map((row) => <PercentRow key={row.key} row={row} />)
-            ) : (
-              <Text style={styles.emptyText}>Nenhuma venda no período.</Text>
             )}
           </View>
 
@@ -264,15 +258,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 8,
+    gap: 4,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
+    marginLeft: -8,
   },
-  title: { flex: 1, fontSize: 20, fontWeight: '700', color: '#1F1B16' },
+  title: { flex: 1, fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
   headerSpacer: { width: 40 },
 
   periodRow: {
@@ -314,6 +309,7 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 15, fontWeight: '700', color: '#C47C0A' },
   summaryLabel: { fontSize: 11, color: '#6B6258', textAlign: 'center' },
 
+  chart: { height: 180 },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,

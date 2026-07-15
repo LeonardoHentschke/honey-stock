@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Plus, ShoppingBag, CalendarClock } from 'lucide-react-native';
+import { ArrowLeft, Plus, ShoppingBag, CalendarClock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatCurrency, formatDateTime } from '@/shared/lib/format';
 import {
@@ -17,16 +17,17 @@ import {
   type ViewMode,
 } from '../viewmodels/useSalesListViewModel';
 import {
-  CHANNEL_LABELS,
   PAYMENT_LABELS,
   STATUS_LABELS,
+  balance,
   type Sale,
   type SaleStatus,
 } from '../models/salesService';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { SalesStackParamList } from '@/navigation/types';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { AppTabsParamList, MoreStackParamList } from '@/navigation/types';
 
-type Props = NativeStackScreenProps<SalesStackParamList, 'SalesList'>;
+type Props = NativeStackScreenProps<MoreStackParamList, 'SalesHistory'>;
 
 const PERIODS: { key: PeriodFilter; label: string }[] = [
   { key: 'today', label: 'Hoje' },
@@ -56,29 +57,36 @@ export function SalesListScreen({ navigation }: Props) {
 
   return (
     <View style={styles.root}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
-        <View>
+      {/* Header — mesmo padrão de Produtos/Contatos: título + botão numa linha.
+          O subtítulo fica FORA da linha para não deslocar o título verticalmente. */}
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
+        <View style={styles.headerLeft}>
+          <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
+            <ArrowLeft size={22} color="#1F1B16" />
+          </Pressable>
           <Text style={styles.title}>Vendas</Text>
-          {isHistory && vm.sales.length > 0 ? (
-            <Text style={styles.subtitle}>
-              {vm.sales.filter((s) => s.status !== 'canceled').length} venda(s) · {formatCurrency(vm.totalAmount)}
-            </Text>
-          ) : null}
-          {!isHistory && vm.scheduledSales.length > 0 ? (
-            <Text style={styles.subtitle}>
-              {vm.scheduledSales.length} agendada(s)
-            </Text>
-          ) : null}
         </View>
         <Pressable
-          onPress={() => navigation.navigate('NewSale')}
+          onPress={() =>
+            navigation.getParent<BottomTabNavigationProp<AppTabsParamList>>()?.navigate('Sales')
+          }
           style={styles.addBtn}
           accessibilityLabel="Nova venda"
         >
           <Plus size={20} color="#9B5F0B" />
         </Pressable>
       </View>
+      {/* Sempre renderizado (com espaço em branco quando vazio) para a lista
+          não pular verticalmente ao trocar de período/modo. */}
+      <Text style={styles.subtitle}>
+        {isHistory
+          ? vm.sales.length > 0
+            ? `${vm.sales.filter((s) => s.status !== 'canceled').length} venda(s) · ${formatCurrency(vm.totalAmount)}`
+            : ' '
+          : vm.scheduledSales.length > 0
+            ? `${vm.scheduledSales.length} agendada(s)`
+            : ' '}
+      </Text>
 
       {/* Toggle Histórico / Agendadas */}
       <View style={styles.viewModeTabs}>
@@ -95,22 +103,21 @@ export function SalesListScreen({ navigation }: Props) {
         ))}
       </View>
 
-      {/* Filtro de período (apenas no histórico) */}
-      {isHistory ? (
-        <View style={styles.tabs}>
-          {PERIODS.map(({ key, label }) => (
-            <Pressable
-              key={key}
-              style={[styles.tab, vm.period === key && styles.tabActive]}
-              onPress={() => vm.setPeriod(key)}
-            >
-              <Text style={[styles.tabText, vm.period === key && styles.tabTextActive]}>
-                {label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      {/* Filtro de período. No histórico limita o passado (desde quando);
+          nas agendadas limita o horizonte futuro (até quando). */}
+      <View style={styles.tabs}>
+        {PERIODS.map(({ key, label }) => (
+          <Pressable
+            key={key}
+            style={[styles.tab, vm.period === key && styles.tabActive]}
+            onPress={() => vm.setPeriod(key)}
+          >
+            <Text style={[styles.tabText, vm.period === key && styles.tabTextActive]}>
+              {label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
       {vm.isLoading ? (
         <View style={styles.centered}>
@@ -184,7 +191,8 @@ function SaleCard({
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={styles.card}
+      android_ripple={{ color: 'rgba(31,27,22,0.05)' }}
       onPress={onPress}
     >
       <View style={styles.cardTop}>
@@ -194,7 +202,7 @@ function SaleCard({
             {customer?.name ?? 'Avulso'}
           </Text>
           <Text style={styles.cardMeta}>
-            {CHANNEL_LABELS[sale.channel as keyof typeof CHANNEL_LABELS]} · {PAYMENT_LABELS[sale.payment_method as keyof typeof PAYMENT_LABELS]}
+            {PAYMENT_LABELS[sale.payment_method as keyof typeof PAYMENT_LABELS]}
           </Text>
         </View>
         <View style={styles.cardRight}>
@@ -204,6 +212,9 @@ function SaleCard({
               {STATUS_LABELS[status]}
             </Text>
           </View>
+          {status !== 'canceled' && balance(sale) > 0 ? (
+            <Text style={styles.cardDue}>Falta {formatCurrency(balance(sale))}</Text>
+          ) : null}
         </View>
       </View>
     </Pressable>
@@ -222,8 +233,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 12,
   },
-  title: { fontSize: 24, fontWeight: '700', color: '#1F1B16' },
-  subtitle: { fontSize: 13, color: '#6B6258', marginTop: 2 },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    marginLeft: -8,
+  },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
+  subtitle: { fontSize: 13, color: '#6B6258', paddingHorizontal: 24, marginTop: -4, marginBottom: 4 },
   addBtn: {
     width: 40,
     height: 40,
@@ -272,13 +296,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#E7E2D9',
     shadowColor: '#1F1B16',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
   },
-  cardPressed: { opacity: 0.85 },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
   cardLeft: { flex: 1, gap: 3 },
   cardDate: { fontSize: 12, color: '#A89E91' },
@@ -288,6 +313,7 @@ const styles = StyleSheet.create({
   cardTotal: { fontSize: 18, fontWeight: '700', color: '#C47C0A' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   statusText: { fontSize: 11, fontWeight: '600' },
+  cardDue: { fontSize: 12, fontWeight: '600', color: '#B3261E' },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyIconWrap: {

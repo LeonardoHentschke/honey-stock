@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Controller } from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react-native';
 
@@ -24,33 +22,37 @@ export function SignUpScreen({ navigation, route }: AuthStackScreenProps<'SignUp
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-ink-50"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerClassName="flex-grow px-6 pt-14 pb-10"
+    <View className="flex-1 bg-ink-50">
+      {/* contentContainerStyle inline: css-interop não processa className em
+          componentes de terceiros como o KeyboardAwareScrollView */}
+      <KeyboardAwareScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 56, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bottomOffset={24}
       >
         {/* Título */}
         <Text className="text-h1 text-ink-900 font-bold mb-6">Criar conta</Text>
 
-        {/* Tabs */}
-        <View className="flex-row bg-ink-100 rounded-md p-1 mb-6">
+        {/* Tabs — mesmo padrão do toggle Histórico/Agendadas de Vendas */}
+        <View className="flex-row bg-white rounded-md border border-ink-100 overflow-hidden mb-6">
           {(['owner', 'member'] as SignUpTab[]).map((tab) => (
+            // key inclui o estado ativo para forçar remount ao alternar: evita que o
+            // css-interop (NativeWind) tente "upgradar" a Pressable após o render
+            // inicial, o que dispara um warning cujo stringify percorre a árvore e
+            // quebra no contexto de navegação (Render Error).
             <Pressable
-              key={tab}
+              key={`${tab}-${activeTab === tab}`}
               onPress={() => setActiveTab(tab)}
               className={cn(
-                'flex-1 py-2 rounded items-center',
-                activeTab === tab ? 'bg-white shadow-sm' : '',
+                'flex-1 py-2.5 items-center',
+                activeTab === tab ? 'bg-honey-100' : '',
               )}
             >
               <Text
                 className={cn(
-                  'text-label font-medium',
-                  activeTab === tab ? 'text-ink-900' : 'text-ink-500',
+                  'text-label',
+                  activeTab === tab ? 'text-honey-700 font-bold' : 'text-ink-500 font-medium',
                 )}
               >
                 {tab === 'owner' ? 'Criar empresa' : 'Entrar com convite'}
@@ -119,32 +121,26 @@ export function SignUpScreen({ navigation, route }: AuthStackScreenProps<'SignUp
               control={ownerForm.control}
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
-                <View>
-                  <Input
-                    label="Senha *"
-                    placeholder="••••••••"
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    returnKeyType="done"
-                    hint="Mínimo 8 caracteres"
-                    onSubmitEditing={onSubmitOwner}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={ownerForm.formState.errors.password?.message}
-                  />
-                  <Pressable
-                    className="absolute right-3 bottom-3"
-                    onPress={() => setShowPassword((s) => !s)}
-                    hitSlop={8}
-                  >
-                    {showPassword ? (
-                      <EyeOff size={20} color="#6B6258" />
-                    ) : (
-                      <Eye size={20} color="#6B6258" />
-                    )}
-                  </Pressable>
-                </View>
+                <Input
+                  label="Senha *"
+                  placeholder="••••••••"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  returnKeyType="done"
+                  hint="Mínimo 8 caracteres"
+                  onSubmitEditing={onSubmitOwner}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={ownerForm.formState.errors.password?.message}
+                  trailing={
+                    <Pressable onPress={() => setShowPassword((s) => !s)} hitSlop={8}>
+                      {showPassword
+                        ? <EyeOff size={20} color="#6B6258" />
+                        : <Eye size={20} color="#6B6258" />}
+                    </Pressable>
+                  }
+                />
               )}
             />
 
@@ -228,32 +224,26 @@ export function SignUpScreen({ navigation, route }: AuthStackScreenProps<'SignUp
               control={memberForm.control}
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
-                <View>
-                  <Input
-                    label="Senha *"
-                    placeholder="••••••••"
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    returnKeyType="done"
-                    hint="Mínimo 8 caracteres"
-                    onSubmitEditing={onSubmitMember}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={memberForm.formState.errors.password?.message}
-                  />
-                  <Pressable
-                    className="absolute right-3 bottom-3"
-                    onPress={() => setShowPassword((s) => !s)}
-                    hitSlop={8}
-                  >
-                    {showPassword ? (
-                      <EyeOff size={20} color="#6B6258" />
-                    ) : (
-                      <Eye size={20} color="#6B6258" />
-                    )}
-                  </Pressable>
-                </View>
+                <Input
+                  label="Senha *"
+                  placeholder="••••••••"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  returnKeyType="done"
+                  hint="Mínimo 8 caracteres"
+                  onSubmitEditing={onSubmitMember}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={memberForm.formState.errors.password?.message}
+                  trailing={
+                    <Pressable onPress={() => setShowPassword((s) => !s)} hitSlop={8}>
+                      {showPassword
+                        ? <EyeOff size={20} color="#6B6258" />
+                        : <Eye size={20} color="#6B6258" />}
+                    </Pressable>
+                  }
+                />
               )}
             />
 
@@ -281,7 +271,7 @@ export function SignUpScreen({ navigation, route }: AuthStackScreenProps<'SignUp
             <Text className="text-body text-honey-600 font-semibold">Entrar</Text>
           </Pressable>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }

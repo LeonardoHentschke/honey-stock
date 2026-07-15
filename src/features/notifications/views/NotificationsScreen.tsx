@@ -54,7 +54,7 @@ export function NotificationsScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.back}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
@@ -107,16 +107,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 8,
+    gap: 4,
   },
   back: {
     width: 40, height: 40,
     alignItems: 'center', justifyContent: 'center',
     borderRadius: 20,
+    marginLeft: -8,
   },
-  title: { fontSize: 20, lineHeight: 28, fontWeight: '700', color: '#1F1B16' },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
 
   list: { paddingHorizontal: 16, paddingBottom: 32 },
 

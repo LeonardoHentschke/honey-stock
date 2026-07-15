@@ -9,6 +9,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Search, UserRound } from 'lucide-react-native';
 import type { Customer } from '@/features/customers/models/customerService';
 
@@ -30,6 +31,7 @@ export function CustomerSelectorSheet({
   onClose,
 }: Props) {
   const [search, setSearch] = useState('');
+  const { top } = useSafeAreaInsets();
 
   const filtered = search.trim()
     ? customers.filter(
@@ -47,7 +49,7 @@ export function CustomerSelectorSheet({
       onRequestClose={onClose}
     >
       <View style={styles.root}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: top + 16 }]}>
           <Text style={styles.title}>Selecionar cliente</Text>
           <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
             <X size={20} color="#6B6258" />

@@ -57,10 +57,15 @@ export function useAuthListener() {
 
     // Escutar mudanças
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         if (session) {
-          await loadProfile(session.user.id);
+          // Defer: chamadas ao supabase (loadProfile → refresh de token) dentro
+          // do callback deadlockam com o lock interno do supabase-js. Adiar com
+          // setTimeout libera o lock antes da query. Ver docs onAuthStateChange.
+          setTimeout(() => {
+            loadProfile(session.user.id);
+          }, 0);
         } else {
           clearAuth();
         }

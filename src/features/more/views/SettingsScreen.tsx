@@ -1,8 +1,9 @@
 import React, { Fragment, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, StyleSheet,
+  View, Text, Pressable, StyleSheet,
   Switch, TextInput, ActivityIndicator, Alert,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -108,14 +109,19 @@ export function SettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.back}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
         <Text style={styles.title}>Configurações</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
+      >
 
         {/* ── Conta ── */}
         <SectionLabel>Conta</SectionLabel>
@@ -212,7 +218,7 @@ export function SettingsScreen() {
           />
         </View>
 
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -223,16 +229,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 8,
+    gap: 4,
   },
   back: {
     width: 40, height: 40,
     alignItems: 'center', justifyContent: 'center',
     borderRadius: 20,
+    marginLeft: -8,
   },
-  title: { fontSize: 20, lineHeight: 28, fontWeight: '700', color: '#1F1B16' },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
 
   content: { paddingBottom: 40 },
 

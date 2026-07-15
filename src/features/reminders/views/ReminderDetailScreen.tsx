@@ -71,7 +71,7 @@ export function ReminderDetailScreen({ route }: Props) {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
@@ -168,22 +168,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 12,
+    gap: 4,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1F1B16',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    marginLeft: -8,
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#1F1B16', flex: 1 },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16', flex: 1 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 12, fontWeight: '700' },
 

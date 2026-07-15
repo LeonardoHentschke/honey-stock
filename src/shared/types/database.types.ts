@@ -22,7 +22,6 @@ export type CustomerType = 'final' | 'reseller';
 export type StockMovementType = 'in' | 'out' | 'adjust' | 'sale';
 export type SaleStatus = 'scheduled' | 'completed' | 'delivered' | 'canceled';
 export type PaymentMethod = 'cash' | 'card' | 'pix' | 'credit' | 'other';
-export type SaleChannel = 'store' | 'fair' | 'delivery' | 'resale' | 'other';
 export type ReminderStatus = 'pending' | 'sent' | 'canceled' | 'failed';
 
 // ─── Tabelas ─────────────────────────────────────────────────────────────────
@@ -195,7 +194,6 @@ export interface Database {
           total: number;
           discount: number;
           payment_method: PaymentMethod;
-          channel: SaleChannel;
           status: SaleStatus;
           scheduled_for: string | null;
           notes: string | null;
@@ -209,7 +207,6 @@ export interface Database {
           total?: number;
           discount?: number;
           payment_method?: PaymentMethod;
-          channel?: SaleChannel;
           status?: SaleStatus;
           scheduled_for?: string | null;
           notes?: string | null;
@@ -237,6 +234,33 @@ export interface Database {
           subtotal: number;
         };
         Update: never;
+        Relationships: [];
+      };
+
+      sale_payments: {
+        Row: {
+          id: string;
+          company_id: string;
+          sale_id: string;
+          amount: number;
+          method: PaymentMethod;
+          paid_at: string;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          sale_id: string;
+          amount: number;
+          method?: PaymentMethod;
+          paid_at?: string;
+          notes?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<Database['public']['Tables']['sale_payments']['Insert'], 'company_id' | 'sale_id' | 'created_by'>>;
         Relationships: [];
       };
 
@@ -310,7 +334,6 @@ export interface Database {
       stock_movement_type: StockMovementType;
       sale_status: SaleStatus;
       payment_method: PaymentMethod;
-      sale_channel: SaleChannel;
       reminder_status: ReminderStatus;
     };
   };

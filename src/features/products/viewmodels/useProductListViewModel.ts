@@ -1,19 +1,29 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { productService, type Product } from '../models/productService';
 import type { ProductsStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<ProductsStackParamList, 'ProductList'>;
+type Route = RouteProp<ProductsStackParamList, 'ProductList'>;
 
 export function useProductListViewModel() {
   const { profile } = useAuth();
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
 
   const [search, setSearch] = useState('');
   const [filterLowStock, setFilterLowStock] = useState(false);
+
+  useEffect(() => {
+    if (route.params?.filterLowStock) {
+      setFilterLowStock(true);
+      navigation.setParams({ filterLowStock: undefined });
+    }
+  }, [route.params?.filterLowStock, navigation]);
   const [showCreateSheet, setShowCreateSheet] = useState(false);
   const [stockProduct, setStockProduct] = useState<Product | null>(null);
 

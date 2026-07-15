@@ -4,38 +4,21 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { remindersService } from '../models/remindersService';
 import { humanizeError } from '@/shared/lib/errors';
 
-function parseBRDateTime(dateStr: string, timeStr: string): Date | null {
-  const parts = dateStr.split('/').map(Number);
-  const timeParts = (timeStr || '00:00').split(':').map(Number);
-  const [d, m, y] = parts;
-  const [h, min] = timeParts;
-  if (!d || !m || !y || isNaN(h) || isNaN(min)) return null;
-  const date = new Date(y, m - 1, d, h, min, 0, 0);
-  return isNaN(date.getTime()) ? null : date;
-}
-
-function formatDateToBR(date: Date): string {
-  const d = String(date.getDate()).padStart(2, '0');
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const y = date.getFullYear();
-  return `${d}/${m}/${y}`;
-}
-
-function formatTimeToBR(date: Date): string {
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${h}:${min}`;
-}
+/** Título de exemplo pré-preenchido (espelha o placeholder do campo). */
+const DEFAULT_TITLE = 'Entregar ao João';
 
 interface UseReminderFormViewModelOptions {
   prefilledSaleId?: string;
   prefilledRemindAt?: Date;
+  /** Nome do cliente da venda vinculada — entra no título pré-preenchido. */
+  prefilledCustomerName?: string;
   onSuccess?: () => void;
 }
 
 export function useReminderFormViewModel({
   prefilledSaleId,
   prefilledRemindAt,
+  prefilledCustomerName,
   onSuccess,
 }: UseReminderFormViewModelOptions = {}) {
   const { profile } = useAuth();
@@ -43,10 +26,13 @@ export function useReminderFormViewModel({
   const userId = profile?.id ?? '';
   const queryClient = useQueryClient();
 
-  const [title, setTitle] = useState('');
+  const defaultTitle = prefilledCustomerName
+    ? `Entregar para ${prefilledCustomerName}`
+    : DEFAULT_TITLE;
+
+  const [title, setTitle] = useState(defaultTitle);
   const [body, setBody] = useState('');
-  const [scheduledDateText, setScheduledDateText] = useState('');
-  const [scheduledTimeText, setScheduledTimeText] = useState('');
+  const [remindAt, setRemindAt] = useState<Date | null>(null);
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -58,8 +44,7 @@ export function useReminderFormViewModel({
 
   useEffect(() => {
     if (prefilledRemindAt) {
-      setScheduledDateText(formatDateToBR(prefilledRemindAt));
-      setScheduledTimeText(formatTimeToBR(prefilledRemindAt));
+      setRemindAt(prefilledRemindAt);
     }
   }, [prefilledRemindAt]);
 
@@ -77,23 +62,20 @@ export function useReminderFormViewModel({
   }
 
   const mutation = useMutation({
-    mutationFn: () => {
-      const remindAt = parseBRDateTime(scheduledDateText, scheduledTimeText);
-      return remindersService.create(companyId, userId, {
+    mutationFn: () =>
+      remindersService.create(companyId, userId, {
         title,
         body: body || undefined,
         remindAt: remindAt!,
         recipientIds: selectedRecipientIds,
         saleId: prefilledSaleId ?? null,
-      });
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders', companyId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', companyId] });
-      setTitle('');
+      setTitle(defaultTitle);
       setBody('');
-      setScheduledDateText('');
-      setScheduledTimeText('');
+      setRemindAt(null);
       setSelectedRecipientIds(userId ? [userId] : []);
       setFormError(null);
       onSuccess?.();
@@ -106,7 +88,6 @@ export function useReminderFormViewModel({
       setFormError('Título obrigatório.');
       return;
     }
-    const remindAt = parseBRDateTime(scheduledDateText, scheduledTimeText);
     if (!remindAt || remindAt <= new Date()) {
       setFormError('A data/hora deve ser no futuro.');
       return;
@@ -123,10 +104,8 @@ export function useReminderFormViewModel({
     setTitle,
     body,
     setBody,
-    scheduledDateText,
-    setScheduledDateText,
-    scheduledTimeText,
-    setScheduledTimeText,
+    remindAt,
+    setRemindAt,
     members: membersQuery.data ?? [],
     isLoadingMembers: membersQuery.isLoading,
     selectedRecipientIds,

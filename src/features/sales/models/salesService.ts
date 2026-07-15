@@ -7,11 +7,16 @@ type SaleRow = Database['public']['Tables']['sales']['Row'];
 type SaleItemRow = Database['public']['Tables']['sale_items']['Row'];
 
 export type SaleStatus = 'scheduled' | 'completed' | 'delivered' | 'canceled';
-export type SaleChannel = 'store' | 'fair' | 'delivery' | 'resale' | 'other';
 export type PaymentMethod = 'cash' | 'card' | 'pix' | 'credit' | 'other';
+
+/** Status de pagamento derivado do total vs. soma dos pagamentos. */
+export type PaymentStatus = 'paid' | 'partial' | 'pending';
+
+export type SalePayment = Database['public']['Tables']['sale_payments']['Row'];
 
 export interface Sale extends SaleRow {
   customer: { name: string; type: string } | null;
+  payments: { amount: number }[];
 }
 
 export interface SaleItemWithProduct extends SaleItemRow {
@@ -21,14 +26,34 @@ export interface SaleItemWithProduct extends SaleItemRow {
 export interface SaleWithItems extends SaleRow {
   customer: { name: string; type: string; phone: string | null } | null;
   items: SaleItemWithProduct[];
+  payments: SalePayment[];
 }
 
-export const CHANNEL_LABELS: Record<SaleChannel, string> = {
-  store: 'Loja',
-  fair: 'Feira',
-  delivery: 'Entrega',
-  resale: 'Revenda',
-  other: 'Outro',
+// ─── Helpers de pagamento (puros) ────────────────────────────────────────────
+type WithPayments = { total: number; payments?: { amount: number }[] | null };
+
+/** Soma dos pagamentos registrados na venda. */
+export function paidAmount(sale: WithPayments): number {
+  return (sale.payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+}
+
+/** Quanto ainda falta receber (nunca negativo). */
+export function balance(sale: WithPayments): number {
+  return Math.max(0, Number(sale.total) - paidAmount(sale));
+}
+
+/** 'paid' | 'partial' | 'pending' — não considera cancelamento (o caller trata). */
+export function paymentStatus(sale: WithPayments): PaymentStatus {
+  const paid = paidAmount(sale);
+  if (paid <= 0) return 'pending';
+  if (paid >= Number(sale.total)) return 'paid';
+  return 'partial';
+}
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  paid: 'Pago',
+  partial: 'Parcial',
+  pending: 'A receber',
 };
 
 export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
@@ -50,7 +75,7 @@ export const salesService = {
   async list(companyId: string): Promise<Sale[]> {
     const { data, error } = await supabase
       .from('sales')
-      .select('*, customer:customers(name, type)')
+      .select('*, customer:customers(name, type), payments:sale_payments(amount)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(200);
@@ -67,9 +92,11 @@ export const salesService = {
         items:sale_items(
           *,
           product:products(name)
-        )
+        ),
+        payments:sale_payments(*)
       `)
       .eq('id', id)
+      .order('paid_at', { referencedTable: 'sale_payments', ascending: true })
       .single();
     if (error) throw new ServiceError('Venda não encontrada.', error);
     return data as unknown as SaleWithItems;
@@ -84,7 +111,8 @@ export const salesService = {
         items:sale_items(
           *,
           product:products(name)
-        )
+        ),
+        payments:sale_payments(amount)
       `)
       .eq('customer_id', customerId)
       .order('created_at', { ascending: false })
@@ -107,7 +135,6 @@ export const salesService = {
         company_id: companyId,
         user_id: userId,
         customer_id: input.customerId ?? null,
-        channel: input.channel,
         payment_method: input.paymentMethod,
         status: 'completed',
         discount: input.discount,
@@ -133,7 +160,17 @@ export const salesService = {
       throw new ServiceError('Erro ao salvar itens da venda.', itemsError);
     }
 
-    return sale as unknown as Sale;
+    if (input.paidAmount > 0) {
+      await supabase.from('sale_payments').insert({
+        company_id: companyId,
+        sale_id: sale.id,
+        amount: input.paidAmount,
+        method: input.paymentMethod,
+        created_by: userId,
+      });
+    }
+
+    return { ...sale, payments: input.paidAmount > 0 ? [{ amount: input.paidAmount }] : [] } as unknown as Sale;
   },
 
   async createScheduledSale(
@@ -151,7 +188,6 @@ export const salesService = {
         company_id: companyId,
         user_id: userId,
         customer_id: input.customerId ?? null,
-        channel: input.channel,
         payment_method: input.paymentMethod,
         status: 'scheduled',
         scheduled_for: scheduledFor.toISOString(),
@@ -177,7 +213,17 @@ export const salesService = {
       throw new ServiceError('Erro ao salvar itens da venda agendada.', itemsError);
     }
 
-    return sale as unknown as Sale;
+    if (input.paidAmount > 0) {
+      await supabase.from('sale_payments').insert({
+        company_id: companyId,
+        sale_id: sale.id,
+        amount: input.paidAmount,
+        method: input.paymentMethod,
+        created_by: userId,
+      });
+    }
+
+    return { ...sale, payments: input.paidAmount > 0 ? [{ amount: input.paidAmount }] : [] } as unknown as Sale;
   },
 
   async markDelivered(saleId: string): Promise<void> {
@@ -194,5 +240,26 @@ export const salesService = {
       .update({ status: 'canceled' })
       .eq('id', id);
     if (error) throw new ServiceError('Erro ao cancelar venda.', error);
+  },
+
+  async registerPayment(input: {
+    saleId: string;
+    companyId: string;
+    userId: string;
+    amount: number;
+    method: PaymentMethod;
+    notes?: string;
+    paidAt?: Date;
+  }): Promise<void> {
+    const { error } = await supabase.from('sale_payments').insert({
+      company_id: input.companyId,
+      sale_id: input.saleId,
+      amount: input.amount,
+      method: input.method,
+      notes: input.notes ?? null,
+      created_by: input.userId,
+      ...(input.paidAt ? { paid_at: input.paidAt.toISOString() } : {}),
+    });
+    if (error) throw new ServiceError('Erro ao registrar pagamento.', error);
   },
 };

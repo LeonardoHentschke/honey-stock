@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Controller } from 'react-hook-form';
 import * as WebBrowser from 'expo-web-browser';
@@ -22,6 +20,13 @@ import { useLoginViewModel } from '../viewmodels/useLoginViewModel';
 import type { AuthStackScreenProps } from '@/navigation/types';
 
 WebBrowser.maybeCompleteAuthSession();
+
+/** Saudação conforme o horário: 5h–11h bom dia, 12h–17h boa tarde, resto boa noite. */
+function greetingForHour(hour: number): string {
+  if (hour >= 5 && hour < 12) return 'Bom dia, apicultor.';
+  if (hour >= 12 && hour < 18) return 'Boa tarde, apicultor.';
+  return 'Boa noite, apicultor.';
+}
 
 function GoogleIcon({ size = 18 }: { size?: number }) {
   return (
@@ -48,16 +53,13 @@ export function LoginScreen({ navigation }: AuthStackScreenProps<'Login'>) {
         style={StyleSheet.absoluteFill}
       />
 
-      <KeyboardAvoidingView
-        style={styles.kav}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <View style={styles.kav}>
         {/* ── Hero ─────────────────────────────────────────────── */}
         <View style={styles.hero}>
           <HexPattern />
           <View style={styles.heroContent}>
             <HoneyLogo size={56} />
-            <Text style={styles.headline}>Bom dia, apicultor.</Text>
+            <Text style={styles.headline}>{greetingForHour(new Date().getHours())}</Text>
             <Text style={styles.subtitle}>
               Controle simples para quem cuida do mel{'\n'}da colheita ao cliente.
             </Text>
@@ -66,10 +68,11 @@ export function LoginScreen({ navigation }: AuthStackScreenProps<'Login'>) {
 
         {/* ── Card branco ──────────────────────────────────────── */}
         <View style={styles.card}>
-          <ScrollView
+          <KeyboardAwareScrollView
             contentContainerStyle={styles.cardContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            bottomOffset={24}
           >
             {/* Email */}
             <Controller
@@ -158,9 +161,9 @@ export function LoginScreen({ navigation }: AuthStackScreenProps<'Login'>) {
                 <Text style={styles.signupLink}>Cadastre-se</Text>
               </Pressable>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }

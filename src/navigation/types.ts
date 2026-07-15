@@ -17,7 +17,7 @@ export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
 export type AppTabsParamList = {
   Dashboard: undefined;
   Products: NavigatorScreenParams<ProductsStackParamList>;
-  Sales: NavigatorScreenParams<SalesStackParamList>;
+  Sales: undefined;
   Contacts: NavigatorScreenParams<ContactsStackParamList>;
   More: NavigatorScreenParams<MoreStackParamList>;
 };
@@ -33,19 +33,14 @@ export type MoreStackParamList = {
   Notifications: undefined;
   Team: undefined;
   Settings: undefined;
+  SalesHistory: undefined;
+  SaleDetail: { saleId: string };
 };
 
 // ─── Products Stack ───────────────────────────────────────────────────────────
 export type ProductsStackParamList = {
-  ProductList: undefined;
+  ProductList: { filterLowStock?: boolean } | undefined;
   ProductDetail: { productId: string };
-};
-
-// ─── Sales Stack ──────────────────────────────────────────────────────────────
-export type SalesStackParamList = {
-  SalesList: undefined;
-  NewSale: undefined;
-  SaleDetail: { saleId: string };
 };
 
 // ─── Contacts Stack ───────────────────────────────────────────────────────────

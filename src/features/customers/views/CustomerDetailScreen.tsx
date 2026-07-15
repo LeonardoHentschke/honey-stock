@@ -36,9 +36,8 @@ import { formatCurrency, formatDate } from '@/shared/lib/format';
 import {
   STATUS_LABELS,
   PAYMENT_LABELS,
-  CHANNEL_LABELS,
+  balance,
   type SaleStatus,
-  type SaleChannel,
   type PaymentMethod,
   type SaleWithItems,
 } from '@/features/sales/models/salesService';
@@ -71,7 +70,7 @@ export function CustomerDetailScreen() {
   function goToNewSale() {
     navigation
       .getParent<BottomTabNavigationProp<AppTabsParamList>>()
-      ?.navigate('Sales', { screen: 'NewSale' });
+      ?.navigate('Sales');
   }
 
   function confirmDeactivate() {
@@ -111,8 +110,8 @@ export function CustomerDetailScreen() {
   return (
     <View style={styles.root}>
       {/* ── Header ───────────────────────────────────────────── */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.iconBtn}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={[styles.iconBtn, styles.backBtn]}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
         <Text style={styles.headerTitle}>Contato</Text>
@@ -183,6 +182,13 @@ export function CustomerDetailScreen() {
             value={summary.lastPurchaseDate ? formatDate(summary.lastPurchaseDate) : '—'}
           />
         </View>
+
+        {summary.totalReceivable > 0 ? (
+          <View style={styles.receivableCard}>
+            <Text style={styles.receivableLabel}>A receber</Text>
+            <Text style={styles.receivableValue}>{formatCurrency(summary.totalReceivable)}</Text>
+          </View>
+        ) : null}
 
         {/* ── Detalhes ─────────────────────────────────────── */}
         <Text style={styles.sectionHeader}>Detalhes</Text>
@@ -282,7 +288,8 @@ function QuickAction({
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.quickAction, pressed && !disabled && styles.quickActionPressed]}
+      style={styles.quickAction}
+      android_ripple={{ color: 'rgba(31,27,22,0.05)' }}
       onPress={onPress}
       disabled={disabled}
     >
@@ -357,8 +364,10 @@ function SaleHistoryCard({ sale }: { sale: SaleWithItems }) {
       <View style={styles.saleDivider} />
       <View style={styles.saleBottomRow}>
         <Text style={styles.saleMeta}>
-          {PAYMENT_LABELS[sale.payment_method as PaymentMethod]} ·{' '}
-          {CHANNEL_LABELS[sale.channel as SaleChannel]}
+          {PAYMENT_LABELS[sale.payment_method as PaymentMethod]}
+          {sale.status !== 'canceled' && balance(sale) > 0 ? (
+            <Text style={styles.saleDue}>{`  ·  Falta ${formatCurrency(balance(sale))}`}</Text>
+          ) : null}
         </Text>
         <Text style={styles.saleTotal}>{formatCurrency(sale.total ?? 0)}</Text>
       </View>
@@ -390,22 +399,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 8,
+    gap: 4,
   },
   iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   editBtn: { backgroundColor: '#FCEFC8' },
-  headerTitle: { flex: 1, fontSize: 17, lineHeight: 24, fontWeight: '600', color: '#1F1B16' },
+  backBtn: { marginLeft: -8 },
+  headerTitle: { flex: 1, fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
 
   content: { paddingHorizontal: 24, paddingTop: 4, paddingBottom: 120 },
 
   // Hero
   hero: { alignItems: 'center', gap: 10, paddingBottom: 4 },
-  avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center' },
   avatarFinal: { backgroundColor: '#FCEFC8' },
   avatarReseller: { backgroundColor: '#E3D0AE' },
-  avatarText: { fontSize: 20, fontWeight: '600' },
+  avatarText: { fontSize: 32, fontWeight: '600' },
   avatarTextFinal: { color: '#9B5F0B' },
   avatarTextReseller: { color: '#7A5A2A' },
   heroName: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16', textAlign: 'center' },
@@ -421,7 +431,6 @@ const styles = StyleSheet.create({
   // Quick actions
   actionsRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', paddingTop: 18, paddingBottom: 4 },
   quickAction: { flex: 1, alignItems: 'center', gap: 6 },
-  quickActionPressed: { opacity: 0.6 },
   quickTile: {
     width: 52,
     height: 52,
@@ -435,13 +444,28 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
-  quickLabel: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: '#3B342B' },
+  quickLabel: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: '#3B342B', textAlign: 'center' },
   quickLabelDisabled: { color: '#A89E91' },
 
   // Section header
   sectionHeader: { fontSize: 17, lineHeight: 24, fontWeight: '600', color: '#1F1B16', marginTop: 20 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   sectionCount: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: '#6B6258', marginTop: 20 },
+
+  // A receber (destaque)
+  receivableCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 12,
+  },
+  receivableLabel: { fontSize: 14, fontWeight: '600', color: '#92400E' },
+  receivableValue: { fontSize: 18, fontWeight: '700', color: '#92400E' },
+  saleDue: { color: '#B3261E', fontWeight: '600' },
 
   // Stat grid
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },

@@ -2,75 +2,59 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   Pressable,
   TextInput,
   Switch,
   StyleSheet,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
-import { ArrowLeft, Search, UserRound, ChevronRight, CalendarClock } from 'lucide-react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { Plus, UserRound, ChevronRight, CalendarClock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import type { AppTabsParamList } from '@/navigation/types';
 import { formatCurrency } from '@/shared/lib/format';
+import { maskCurrency, currencyToNumber } from '@/shared/lib/mask';
+import { DateTimeField } from '@/shared/components/DateTimeField';
+import { useToastStore } from '@/shared/stores/toastStore';
 import { useNewSaleViewModel } from '../viewmodels/useNewSaleViewModel';
-import { CHANNEL_LABELS, PAYMENT_LABELS, type SaleChannel, type PaymentMethod } from '../models/salesService';
+import { PAYMENT_LABELS, type PaymentMethod } from '../models/salesService';
 import { CartItemRow } from './components/CartItemRow';
 import { ProductSearchSheet } from './components/ProductSearchSheet';
 import { CustomerSelectorSheet } from './components/CustomerSelectorSheet';
-import { OptionPickerSheet } from './components/OptionPickerSheet';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { SalesStackParamList } from '@/navigation/types';
-
-type Props = NativeStackScreenProps<SalesStackParamList, 'NewSale'>;
-
-const CHANNEL_OPTIONS: { value: SaleChannel; label: string }[] = [
-  { value: 'store', label: CHANNEL_LABELS.store },
-  { value: 'fair', label: CHANNEL_LABELS.fair },
-  { value: 'delivery', label: CHANNEL_LABELS.delivery },
-  { value: 'resale', label: CHANNEL_LABELS.resale },
-  { value: 'other', label: CHANNEL_LABELS.other },
-];
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: 'cash', label: PAYMENT_LABELS.cash },
-  { value: 'card', label: PAYMENT_LABELS.card },
   { value: 'pix', label: PAYMENT_LABELS.pix },
-  { value: 'credit', label: PAYMENT_LABELS.credit },
-  { value: 'other', label: PAYMENT_LABELS.other },
 ];
 
-export function NewSaleScreen({ navigation }: Props) {
+const PAY_MODES = [
+  { key: 'full', label: 'Pago' },
+  { key: 'partial', label: 'Parcial' },
+  { key: 'later', label: 'A prazo' },
+] as const;
+
+export function NewSaleScreen() {
   const { top, bottom } = useSafeAreaInsets();
-  const vm = useNewSaleViewModel();
+  const navigation = useNavigation<NavigationProp<AppTabsParamList>>();
+  const vm = useNewSaleViewModel({
+    onSaleCreated: (saleId) =>
+      navigation.navigate('More', { screen: 'SaleDetail', params: { saleId } }),
+  });
 
   const [showProductSheet, setShowProductSheet] = useState(false);
   const [showCustomerSheet, setShowCustomerSheet] = useState(false);
-  const [showChannelSheet, setShowChannelSheet] = useState(false);
-  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
-  const [discountText, setDiscountText] = useState('0');
+  const [discountText, setDiscountText] = useState('');
+  const showToast = useToastStore((s) => s.show);
 
-  function applyDateMask(raw: string): string {
-    const digits = raw.replace(/\D/g, '').slice(0, 8);
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-  }
-
-  function applyTimeMask(raw: string): string {
-    const digits = raw.replace(/\D/g, '').slice(0, 4);
-    if (digits.length <= 2) return digits;
-    return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-  }
-
-  // Navega de volta após sucesso
+  // Confirma o sucesso e permanece no PDV (o carrinho já é resetado no view model)
   useEffect(() => {
     if (vm.isSuccess) {
-      navigation.goBack();
+      setDiscountText('');
+      showToast({ type: 'success', title: 'Venda registrada' });
     }
-  }, [vm.isSuccess, navigation]);
+  }, [vm.isSuccess, showToast]);
 
   function handleSubmit() {
     if (vm.cartItems.length === 0) {
@@ -83,36 +67,36 @@ export function NewSaleScreen({ navigation }: Props) {
 
 
   function handleDiscountChange(text: string) {
-    setDiscountText(text);
-    const parsed = parseFloat(text.replace(',', '.'));
-    vm.setDiscount(isNaN(parsed) ? 0 : parsed);
+    const masked = maskCurrency(text);
+    setDiscountText(masked);
+    vm.setDiscount(currencyToNumber(masked));
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={bottom}
-    >
+    <View style={styles.root}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
-          <ArrowLeft size={22} color="#1F1B16" />
-        </Pressable>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Text style={styles.title}>Nova venda</Text>
+        {/* espaçador de 40dp: mantém o título na mesma posição vertical das
+            telas cujo header tem botão de 40dp */}
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Botão de busca de produto */}
-      <Pressable style={styles.searchBar} onPress={() => setShowProductSheet(true)}>
-        <Search size={18} color="#A89E91" />
-        <Text style={styles.searchPlaceholder}>Adicionar produto...</Text>
+      {/* Botão de adicionar produto */}
+      <Pressable
+        style={styles.addProductBtn}
+        android_ripple={{ color: 'rgba(155,95,11,0.12)' }}
+        onPress={() => setShowProductSheet(true)}
+      >
+        <Plus size={20} color="#9B5F0B" />
+        <Text style={styles.addProductText}>Adicionar produto</Text>
       </Pressable>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
         {/* Carrinho */}
         <Text style={styles.sectionLabel}>
@@ -142,17 +126,31 @@ export function NewSaleScreen({ navigation }: Props) {
           onPress={() => setShowCustomerSheet(true)}
         />
 
-        <FormRow
-          label="Canal"
-          value={CHANNEL_LABELS[vm.channel]}
-          onPress={() => setShowChannelSheet(true)}
-        />
-
-        <FormRow
-          label="Pagamento"
-          value={PAYMENT_LABELS[vm.paymentMethod]}
-          onPress={() => setShowPaymentSheet(true)}
-        />
+        {/* Forma de pagamento — só 2 opções, escolha direta por chips */}
+        <View style={styles.payCard}>
+          <Text style={styles.formLabel}>Forma de pagamento</Text>
+          <View style={styles.payModeRow}>
+            {PAYMENT_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt.value}
+                style={[
+                  styles.payModeChip,
+                  vm.paymentMethod === opt.value && styles.payModeChipActive,
+                ]}
+                onPress={() => vm.setPaymentMethod(opt.value)}
+              >
+                <Text
+                  style={[
+                    styles.payModeChipText,
+                    vm.paymentMethod === opt.value && styles.payModeChipTextActive,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
         {/* Desconto */}
         <View style={styles.formRow}>
@@ -161,9 +159,49 @@ export function NewSaleScreen({ navigation }: Props) {
             style={styles.discountInput}
             value={discountText}
             onChangeText={handleDiscountChange}
+            placeholder="0,00"
+            placeholderTextColor="#A89E91"
             keyboardType="decimal-pad"
-            selectTextOnFocus
           />
+        </View>
+
+        {/* Pagamento recebido */}
+        <View style={styles.payCard}>
+          <Text style={styles.formLabel}>Pagamento</Text>
+          <View style={styles.payModeRow}>
+            {PAY_MODES.map((opt) => (
+              <Pressable
+                key={opt.key}
+                style={[styles.payModeChip, vm.paymentMode === opt.key && styles.payModeChipActive]}
+                onPress={() => vm.setPaymentMode(opt.key)}
+              >
+                <Text
+                  style={[
+                    styles.payModeChipText,
+                    vm.paymentMode === opt.key && styles.payModeChipTextActive,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {vm.paymentMode === 'partial' ? (
+            <View style={styles.payPartialRow}>
+              <Text style={styles.formLabel}>Valor pago (R$)</Text>
+              <TextInput
+                style={styles.discountInput}
+                value={vm.paidAmountText}
+                onChangeText={(t) => vm.setPaidAmountText(maskCurrency(t))}
+                placeholder="0,00"
+                placeholderTextColor="#A89E91"
+                keyboardType="decimal-pad"
+              />
+            </View>
+          ) : null}
+          {vm.remaining > 0 ? (
+            <Text style={styles.payRemaining}>Falta receber {formatCurrency(vm.remaining)}</Text>
+          ) : null}
         </View>
 
         {/* Agendar entrega */}
@@ -186,26 +224,21 @@ export function NewSaleScreen({ navigation }: Props) {
           <View style={styles.scheduleDateRow}>
             <View style={styles.scheduleDateField}>
               <Text style={styles.scheduleDateLabel}>Data</Text>
-              <TextInput
+              <DateTimeField
+                mode="date"
+                value={vm.scheduledFor}
+                onChange={vm.setScheduledFor}
+                minimumDate={new Date()}
                 style={styles.scheduleDateInput}
-                value={vm.scheduledDateText}
-                onChangeText={(t) => vm.setScheduledDateText(applyDateMask(t))}
-                placeholder="DD/MM/AAAA"
-                placeholderTextColor="#A89E91"
-                keyboardType="numeric"
-                maxLength={10}
               />
             </View>
             <View style={styles.scheduleDateField}>
               <Text style={styles.scheduleDateLabel}>Hora</Text>
-              <TextInput
+              <DateTimeField
+                mode="time"
+                value={vm.scheduledFor}
+                onChange={vm.setScheduledFor}
                 style={styles.scheduleDateInput}
-                value={vm.scheduledTimeText}
-                onChangeText={(t) => vm.setScheduledTimeText(applyTimeMask(t))}
-                placeholder="HH:MM"
-                placeholderTextColor="#A89E91"
-                keyboardType="numeric"
-                maxLength={5}
               />
             </View>
           </View>
@@ -219,7 +252,7 @@ export function NewSaleScreen({ navigation }: Props) {
         {vm.submitError ? (
           <Text style={styles.errorText}>{vm.submitError}</Text>
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Footer com total e botão */}
       <View style={[styles.footer, { paddingBottom: bottom + 16 }]}>
@@ -264,25 +297,7 @@ export function NewSaleScreen({ navigation }: Props) {
         onSelect={vm.selectCustomer}
         onClose={() => setShowCustomerSheet(false)}
       />
-
-      <OptionPickerSheet
-        visible={showChannelSheet}
-        title="Canal de venda"
-        options={CHANNEL_OPTIONS}
-        selected={vm.channel}
-        onSelect={vm.setChannel}
-        onClose={() => setShowChannelSheet(false)}
-      />
-
-      <OptionPickerSheet
-        visible={showPaymentSheet}
-        title="Forma de pagamento"
-        options={PAYMENT_OPTIONS}
-        selected={vm.paymentMethod}
-        onSelect={vm.setPaymentMethod}
-        onClose={() => setShowPaymentSheet(false)}
-      />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -321,41 +336,24 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#1F1B16',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  title: { fontSize: 20, fontWeight: '700', color: '#1F1B16', flex: 1 },
-  headerSpacer: { width: 40 },
+  headerSpacer: { width: 40, height: 40 },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16', flex: 1 },
 
-  searchBar: {
+  addProductBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginHorizontal: 24,
     marginBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    height: 48,
-    paddingHorizontal: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#E7E2D9',
-    shadowColor: '#1F1B16',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: '#FCEFC8',
+    borderRadius: 12,
+    height: 52,
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#F0D48A',
+    overflow: 'hidden',
   },
-  searchPlaceholder: { fontSize: 15, color: '#A89E91', flex: 1 },
+  addProductText: { fontSize: 15, fontWeight: '600', color: '#9B5F0B' },
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 16, gap: 10 },
@@ -403,6 +401,39 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
+  payCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+    shadowColor: '#1F1B16',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  payModeRow: { flexDirection: 'row', gap: 8 },
+  payModeChip: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: '#F5F1EA',
+    alignItems: 'center',
+  },
+  payModeChipActive: { backgroundColor: '#FCEFC8' },
+  payModeChipText: { fontSize: 13, color: '#A89E91', fontWeight: '500' },
+  payModeChipTextActive: { color: '#9B5F0B', fontWeight: '600' },
+  payPartialRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#F2EDE4',
+    paddingTop: 12,
+  },
+  payRemaining: { fontSize: 13, color: '#9B5F0B', fontWeight: '600' },
+
   scheduleToggleRow: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -440,9 +471,9 @@ const styles = StyleSheet.create({
   },
   scheduleDateLabel: { fontSize: 11, fontWeight: '600', color: '#A89E91', textTransform: 'uppercase', letterSpacing: 0.4 },
   scheduleDateInput: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F1B16',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    paddingHorizontal: 0,
     paddingVertical: 0,
   },
 

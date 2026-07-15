@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { customerService } from '../models/customerService';
-import { salesService } from '@/features/sales/models/salesService';
+import { salesService, balance } from '@/features/sales/models/salesService';
 import type { CustomerValues } from '../models/customerSchemas';
 
 export function useCustomerDetailViewModel(customerId: string) {
@@ -30,7 +30,8 @@ export function useCustomerDetailViewModel(customerId: string) {
     const count = billable.length;
     const avgTicket = count > 0 ? totalSpent / count : 0;
     const lastPurchaseDate = sales.length > 0 ? new Date(sales[0].created_at) : null;
-    return { totalSpent, count, avgTicket, lastPurchaseDate };
+    const totalReceivable = billable.reduce((sum, s) => sum + balance(s), 0);
+    return { totalSpent, count, avgTicket, lastPurchaseDate, totalReceivable };
   }, [sales]);
 
   const updateMutation = useMutation({

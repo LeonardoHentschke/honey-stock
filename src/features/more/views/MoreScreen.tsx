@@ -6,8 +6,6 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
-  Modal,
-  Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -16,9 +14,9 @@ import {
   LogOut,
   ChevronRight,
   User,
-  Copy,
   Building2,
   ArrowLeftRight,
+  ShoppingBag,
   Users,
   Settings,
   UserPlus,
@@ -29,6 +27,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useAuth } from '@/shared/hooks/useAuth';
+import { InviteCodeModal } from '@/shared/components/InviteCodeModal';
 import { signOut, getInviteCode } from '@/features/auth/models/authService';
 import { useDashboardViewModel } from '@/features/dashboard/viewmodels/useDashboardViewModel';
 import type { MoreStackParamList } from '@/navigation/types';
@@ -76,15 +75,16 @@ export function MoreScreen() {
     try { await signOut(); } catch { setLoggingOut(false); }
   };
 
-  const handleShareInvite = async () => {
-    if (!inviteCode) return;
-    await Share.share({ message: `Entre no Mel Manager com o código de convite: ${inviteCode}` });
-  };
-
   const GROUPS: MenuGroup[] = [
     {
       title: 'Operação',
       items: [
+        {
+          Icon: ShoppingBag,
+          label: 'Vendas',
+          subtitle: 'Histórico e agendadas',
+          onPress: () => navigation.navigate('SalesHistory'),
+        },
         {
           Icon: Bell,
           label: 'Lembretes',
@@ -123,6 +123,12 @@ export function MoreScreen() {
           subtitle: 'Membros da empresa',
           onPress: () => navigation.navigate('Team'),
         },
+        {
+          Icon: UserPlus,
+          label: 'Convidar membro',
+          subtitle: 'Compartilhar código de convite',
+          onPress: () => setInviteVisible(true),
+        },
       ],
     },
     {
@@ -133,12 +139,6 @@ export function MoreScreen() {
           label: 'Configurações',
           subtitle: 'Preferências do app',
           onPress: () => navigation.navigate('Settings'),
-        },
-        {
-          Icon: UserPlus,
-          label: 'Convidar membro',
-          subtitle: 'Adicionar membro à empresa',
-          onPress: () => setInviteVisible(true),
         },
         {
           Icon: User,
@@ -162,8 +162,11 @@ export function MoreScreen() {
   return (
     <View style={styles.root}>
       {/* ── Título ────────────────────────────────────────────── */}
-      <View style={[styles.titleArea, { paddingTop: top + 8 }]}>
+      <View style={[styles.titleArea, { paddingTop: top + 12 }]}>
         <Text style={styles.title}>Mais</Text>
+        {/* espaçador de 40dp: mantém o título na mesma posição vertical das
+            telas cujo header tem botão de 40dp */}
+        <View style={styles.titleSpacer} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -253,46 +256,13 @@ export function MoreScreen() {
         <Text style={styles.version}>Mel Manager v1.0.0 · build 1</Text>
       </ScrollView>
 
-      {/* ── Modal código de convite ────────────────────────── */}
-      <Modal
+      {/* ── Modal código de convite — compartilhado com a tela Equipe ── */}
+      <InviteCodeModal
         visible={inviteVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setInviteVisible(false)}
-      >
-        <Pressable style={styles.overlay} onPress={() => setInviteVisible(false)}>
-          <Pressable style={styles.inviteCard} onPress={() => {}}>
-            <Text style={styles.inviteTitle}>Código de convite</Text>
-            <Text style={styles.inviteSub}>
-              Compartilhe com quem vai entrar na empresa
-            </Text>
-
-            {inviteLoading ? (
-              <ActivityIndicator size="large" color="#E89B12" style={{ marginVertical: 24 }} />
-            ) : (
-              <View style={styles.codeBox}>
-                <Text style={styles.codeText}>{inviteCode ?? '——'}</Text>
-              </View>
-            )}
-
-            <View style={styles.inviteActions}>
-              <Pressable
-                style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}
-                onPress={handleShareInvite}
-                disabled={!inviteCode}
-              >
-                <View style={styles.shareBtnInner}>
-                  <Copy size={16} color="#9B5F0B" />
-                  <Text style={styles.shareBtnText}>Compartilhar</Text>
-                </View>
-              </Pressable>
-              <Pressable style={styles.closeBtn} onPress={() => setInviteVisible(false)}>
-                <Text style={styles.closeBtnText}>Fechar</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        code={inviteCode}
+        isLoading={inviteLoading}
+        onClose={() => setInviteVisible(false)}
+      />
     </View>
   );
 }
@@ -301,15 +271,18 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F5F1EA' },
 
   titleArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingBottom: 12,
   },
+  titleSpacer: { width: 40, height: 40 },
   title: {
-    fontSize: 28,
-    lineHeight: 36,
+    fontSize: 24,
+    lineHeight: 32,
     fontWeight: '700',
     color: '#1F1B16',
-    letterSpacing: -0.3,
   },
 
   scrollContent: { paddingBottom: 32 },
@@ -453,63 +426,4 @@ const styles = StyleSheet.create({
   },
 
   // ── Invite modal ─────────────────────────────────────────
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(31,27,22,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  inviteCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-  },
-  inviteTitle: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: '700',
-    color: '#1F1B16',
-    marginBottom: 6,
-  },
-  inviteSub: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#6B6258',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  codeBox: {
-    backgroundColor: '#FCEFC8',
-    borderRadius: 12,
-    paddingVertical: 20,
-    paddingHorizontal: 32,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#F9DE91',
-  },
-  codeText: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: '700',
-    color: '#9B5F0B',
-    letterSpacing: 6,
-  },
-  inviteActions: { width: '100%', gap: 10 },
-  shareBtn: {
-    backgroundColor: '#FCEFC8',
-    borderRadius: 12,
-    paddingVertical: 14,
-  },
-  shareBtnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  shareBtnText: { fontSize: 15, fontWeight: '600', color: '#9B5F0B' },
-  closeBtn: { alignItems: 'center', paddingVertical: 12 },
-  closeBtnText: { fontSize: 15, fontWeight: '500', color: '#6B6258' },
 });

@@ -2,11 +2,9 @@ import React from 'react';
 import {
   View,
   Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Controller } from 'react-hook-form';
 import { CheckCircle2, ArrowLeft } from 'lucide-react-native';
 
@@ -19,10 +17,7 @@ export function ForgotPasswordScreen({ navigation }: AuthStackScreenProps<'Forgo
   const { control, errors, isLoading, success, onSubmit } = useForgotPasswordViewModel();
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-ink-50"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View className="flex-1 bg-ink-50">
       {/* Header manual */}
       <View className="px-4 pt-14 pb-2">
         <Pressable
@@ -35,10 +30,13 @@ export function ForgotPasswordScreen({ navigation }: AuthStackScreenProps<'Forgo
         </Pressable>
       </View>
 
-      <ScrollView
-        contentContainerClassName="flex-grow px-6 pt-4 pb-10"
+      {/* contentContainerStyle inline: css-interop não processa className em
+          componentes de terceiros como o KeyboardAwareScrollView */}
+      <KeyboardAwareScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bottomOffset={24}
       >
         {success ? (
           /* ── Estado de sucesso ── */
@@ -103,7 +101,7 @@ export function ForgotPasswordScreen({ navigation }: AuthStackScreenProps<'Forgo
             </Button>
           </View>
         )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }

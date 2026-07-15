@@ -81,8 +81,8 @@ export function ProductDetailScreen() {
   return (
     <View style={styles.root}>
       {/* ── Header ───────────────────────────────────────────── */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.iconBtn}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={[styles.iconBtn, styles.backBtn]}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
@@ -239,9 +239,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 12,
-    gap: 8,
+    gap: 4,
   },
   iconBtn: {
     width: 40,
@@ -251,7 +251,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   editBtn: { backgroundColor: '#FCEFC8' },
-  headerTitle: { flex: 1, fontSize: 18, lineHeight: 26, fontWeight: '600', color: '#1F1B16' },
+  backBtn: { marginLeft: -8 },
+  headerTitle: { flex: 1, fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16' },
 
   content: { padding: 24, gap: 16, paddingBottom: 40 },
 

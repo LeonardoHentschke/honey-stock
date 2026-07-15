@@ -4,18 +4,17 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   Pressable,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { maskPhone, maskCpf, maskCpfCnpj } from '@/shared/lib/mask';
 import { customerSchema, type CustomerValues } from '../../models/customerSchemas';
 import type { Customer } from '../../models/customerService';
 
@@ -29,7 +28,7 @@ interface Props {
 }
 
 export function CustomerFormSheet({ visible, editingCustomer, isSaving, error, onSave, onClose }: Props) {
-  const { bottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
 
   const { control, handleSubmit, watch, reset, formState: { errors } } = useForm<CustomerValues>({
     resolver: zodResolver(customerSchema),
@@ -87,7 +86,7 @@ export function CustomerFormSheet({ visible, editingCustomer, isSaving, error, o
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: top + 16 }]}>
           <Text style={styles.title}>
             {editingCustomer ? 'Editar cliente' : 'Novo cliente'}
           </Text>
@@ -96,11 +95,11 @@ export function CustomerFormSheet({ visible, editingCustomer, isSaving, error, o
           </Pressable>
         </View>
 
-        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ScrollView
+          <KeyboardAwareScrollView
             style={styles.flex}
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
+            bottomOffset={24}
           >
             {/* Tipo */}
             <Controller
@@ -180,11 +179,12 @@ export function CustomerFormSheet({ visible, editingCustomer, isSaving, error, o
                   <TextInput
                     style={styles.input}
                     value={value ?? ''}
-                    onChangeText={(t) => onChange(t || null)}
+                    onChangeText={(t) => onChange(maskPhone(t) || null)}
                     onBlur={onBlur}
                     placeholder="(51) 99999-9999"
                     placeholderTextColor="#A89E91"
                     keyboardType="phone-pad"
+                    maxLength={15}
                   />
                 </View>
               )}
@@ -222,11 +222,14 @@ export function CustomerFormSheet({ visible, editingCustomer, isSaving, error, o
                   <TextInput
                     style={styles.input}
                     value={value ?? ''}
-                    onChangeText={(t) => onChange(t || null)}
+                    onChangeText={(t) =>
+                      onChange((isReseller ? maskCpfCnpj(t) : maskCpf(t)) || null)
+                    }
                     onBlur={onBlur}
                     placeholder={isReseller ? '00.000.000/0000-00' : '000.000.000-00'}
                     placeholderTextColor="#A89E91"
                     keyboardType="numeric"
+                    maxLength={isReseller ? 18 : 14}
                   />
                 </View>
               )}
@@ -299,7 +302,7 @@ export function CustomerFormSheet({ visible, editingCustomer, isSaving, error, o
             />
 
             {error && <Text style={styles.submitError}>{error}</Text>}
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           <View style={[styles.footer, { paddingBottom: bottom + 16 }]}>
             <Pressable
@@ -316,7 +319,6 @@ export function CustomerFormSheet({ visible, editingCustomer, isSaving, error, o
               )}
             </Pressable>
           </View>
-        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

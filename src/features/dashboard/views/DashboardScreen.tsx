@@ -34,7 +34,7 @@ export function DashboardScreen() {
   return (
     <View style={styles.root}>
       {/* ── App header ────────────────────────────────────────── */}
-      <View style={[styles.header, { paddingTop: top + 8 }]}>
+      <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Avatar initial={vm.companyInitials || '?'} size="md" />
         <View style={styles.headerText}>
           <Text style={styles.headerCompany}>{vm.companyName || '—'}</Text>
@@ -44,7 +44,7 @@ export function DashboardScreen() {
           style={styles.bellBtn}
           hitSlop={8}
           accessibilityLabel="Lembretes"
-          onPress={() => navigation.navigate('More', { screen: 'Reminders' })}
+          onPress={() => navigation.navigate('More', { screen: 'Reminders', initial: false })}
         >
           <Bell size={22} color="#1F1B16" />
           {vm.pendingRemindersCount > 0 && <View style={styles.bellDot} />}
@@ -64,32 +64,38 @@ export function DashboardScreen() {
         }
       >
         {/* ── Hero card ─────────────────────────────────────── */}
-        <LinearGradient
-          colors={['#9B5F0B', '#C47C0A', '#E89B12']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
+        <Pressable
+          accessibilityLabel="Histórico de vendas"
+          onPress={() => navigation.navigate('More', { screen: 'SalesHistory', initial: false })}
+          style={({ pressed }) => (pressed ? { opacity: 0.92 } : undefined)}
         >
-          <View style={styles.heroWatermark} pointerEvents="none">
-            <HoneyLogo size={160} />
-          </View>
+          <LinearGradient
+            colors={['#9B5F0B', '#C47C0A', '#E89B12']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            <View style={styles.heroWatermark} pointerEvents="none">
+              <HoneyLogo size={160} />
+            </View>
 
-          {vm.isLoading ? (
-            <ActivityIndicator color="rgba(255,255,255,0.7)" style={styles.heroLoader} />
-          ) : (
-            <>
-              <Text style={styles.heroDate}>{vm.heroDate}</Text>
-              <Text style={styles.heroRevenue}>{vm.todayRevenue}</Text>
-              <View style={styles.heroStats}>
-                <StatCol label="Vendas" value={String(vm.todaySalesCount)} />
-                <View style={styles.heroStatDivider} />
-                <StatCol label="Mês" value={vm.monthRevenue} />
-                <View style={styles.heroStatDivider} />
-                <StatCol label="Mais vendido" value={vm.bestSeller} />
-              </View>
-            </>
-          )}
-        </LinearGradient>
+            {vm.isLoading ? (
+              <ActivityIndicator color="rgba(255,255,255,0.7)" style={styles.heroLoader} />
+            ) : (
+              <>
+                <Text style={styles.heroDate}>{vm.heroDate}</Text>
+                <Text style={styles.heroRevenue}>{vm.todayRevenue}</Text>
+                <View style={styles.heroStats}>
+                  <StatCol label="Vendas" value={String(vm.todaySalesCount)} />
+                  <View style={styles.heroStatDivider} />
+                  <StatCol label="Mês" value={vm.monthRevenue} />
+                  <View style={styles.heroStatDivider} />
+                  <StatCol label="Mais vendido" value={vm.bestSeller} flexible />
+                </View>
+              </>
+            )}
+          </LinearGradient>
+        </Pressable>
 
         {/* ── Próximas entregas ─────────────────────────────── */}
         <SectionHeader style={styles.sectionMT}>Próximas entregas</SectionHeader>
@@ -102,7 +108,17 @@ export function DashboardScreen() {
             contentContainerStyle={styles.deliveriesScroll}
           >
             {vm.nextDeliveries.map((d) => (
-              <DeliveryCard key={d.id} delivery={d} />
+              <DeliveryCard
+                key={d.id}
+                delivery={d}
+                onPress={() =>
+                  navigation.navigate('More', {
+                    screen: 'SaleDetail',
+                    params: { saleId: d.id },
+                    initial: false,
+                  })
+                }
+              />
             ))}
           </ScrollView>
         )}
@@ -119,6 +135,13 @@ export function DashboardScreen() {
                 ? `${vm.lowStockCount} produto${vm.lowStockCount > 1 ? 's' : ''} precisam reposição`
                 : 'Nenhum produto em baixo estoque'
             }
+            onPress={() =>
+              navigation.navigate('Products', {
+                screen: 'ProductList',
+                params: { filterLowStock: true },
+                initial: false,
+              })
+            }
           />
           <CardRow
             iconBg="#FCEFC8"
@@ -130,7 +153,7 @@ export function DashboardScreen() {
                 : 'Sem lembretes pendentes'
             }
             subtitle="Toque para ver todos os lembretes"
-            onPress={() => navigation.navigate('More', { screen: 'Reminders' })}
+            onPress={() => navigation.navigate('More', { screen: 'Reminders', initial: false })}
           />
         </View>
       </ScrollView>
@@ -140,25 +163,31 @@ export function DashboardScreen() {
 
 // ─── Sub-componentes ────────────────────────────────────────────────────────
 
-function DeliveryCard({ delivery }: { delivery: NextDelivery }) {
+function DeliveryCard({ delivery, onPress }: { delivery: NextDelivery; onPress: () => void }) {
   return (
-    <View style={styles.deliveryCard}>
-      <Text style={styles.deliveryWhen}>{delivery.when}</Text>
-      <Text style={styles.deliveryCustomer}>{delivery.customerName}</Text>
-      <Text style={styles.deliveryItems}>{delivery.itemsSummary}</Text>
-      <View style={styles.deliveryFooter}>
-        <Text style={styles.deliveryTotal}>{delivery.total}</Text>
-        <ArrowRight size={18} color="#C47C0A" />
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel={`Venda agendada de ${delivery.customerName}`}
+      style={({ pressed }) => (pressed ? { opacity: 0.85 } : undefined)}
+    >
+      <View style={styles.deliveryCard}>
+        <Text style={styles.deliveryWhen}>{delivery.when}</Text>
+        <Text style={styles.deliveryCustomer}>{delivery.customerName}</Text>
+        <Text style={styles.deliveryItems}>{delivery.itemsSummary}</Text>
+        <View style={styles.deliveryFooter}>
+          <Text style={styles.deliveryTotal}>{delivery.total}</Text>
+          <ArrowRight size={18} color="#C47C0A" />
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-function StatCol({ label, value }: { label: string; value: string }) {
+function StatCol({ label, value, flexible }: { label: string; value: string; flexible?: boolean }) {
   return (
-    <View>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
+    <View style={flexible ? styles.statColFlexible : undefined}>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
+      <Text style={styles.statValue} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
@@ -294,6 +323,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: 'rgba(255,255,255,0.8)',
   },
+  statColFlexible: { flex: 1, minWidth: 0 },
   statValue: {
     fontSize: 17,
     lineHeight: 24,
