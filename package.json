@@ -6,7 +6,12 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status",
+    "db:types": "supabase gen types typescript --local > src/shared/types/database.types.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -51,6 +56,7 @@
     "react-hook-form": "^7.76.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-keyboard-controller": "1.18.5",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
@@ -70,6 +76,7 @@
     "eslint": "^9.39.4",
     "eslint-config-expo": "~10.0.0",
     "prettier": "^3.8.3",
+    "supabase": "^2.109.1",
     "typescript": "~5.9.2"
   },
   "private": true
