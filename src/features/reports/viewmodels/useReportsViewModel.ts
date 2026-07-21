@@ -80,13 +80,6 @@ export function useReportsViewModel() {
     staleTime: 60_000,
   });
 
-  const lowStockQuery = useQuery({
-    queryKey: ['low-stock-report', companyId],
-    queryFn: () => reportsService.getLowStockProducts(companyId),
-    enabled: !!companyId,
-    staleTime: 60_000,
-  });
-
   // ─── Aggregations ────────────────────────────────────────────────────────────
 
   const salesSummary = useMemo(() => {
@@ -142,13 +135,12 @@ export function useReportsViewModel() {
       }));
   }, [salesQuery.data]);
 
-  const isLoading = salesQuery.isLoading || lowStockQuery.isLoading;
+  const isLoading = salesQuery.isLoading;
   const isRefetching = salesQuery.isRefetching;
 
   function refresh() {
     salesQuery.refetch();
     itemsQuery.refetch();
-    lowStockQuery.refetch();
   }
 
   return {
@@ -158,7 +150,6 @@ export function useReportsViewModel() {
     salesByDay,
     topProducts,
     byPayment,
-    lowStockProducts: lowStockQuery.data ?? [],
     isLoading,
     isRefetching,
     refresh,

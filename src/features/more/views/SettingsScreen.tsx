@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import {
   ArrowLeft, User, Building2, Bell, BellRing, ShoppingCart,
-  AlertTriangle, BarChart3, Warehouse, CheckCircle2,
+  BarChart3, Warehouse, CheckCircle2, Sparkles,
 } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -160,18 +160,6 @@ export function SettingsScreen() {
           />
         </View>
 
-        {/* ── Vendas e estoque ── */}
-        <SectionLabel>Vendas e estoque</SectionLabel>
-        <View style={styles.card}>
-          <RowToggle
-            Icon={AlertTriangle}
-            label="Alerta de estoque baixo"
-            sub="Avisar quando atingir o mínimo"
-            value={settings.lowStockAlert}
-            onChange={settings.setLowStockAlert}
-          />
-        </View>
-
         {/* ── Notificações ── */}
         <SectionLabel>Notificações</SectionLabel>
         <View style={styles.card}>
@@ -181,14 +169,6 @@ export function SettingsScreen() {
             sub="Confirmação a cada venda"
             value={settings.notifSale}
             onChange={settings.setNotifSale}
-          />
-          <Sep />
-          <RowToggle
-            Icon={AlertTriangle}
-            label="Estoque baixo"
-            sub="Push quando um item acabar"
-            value={settings.notifLowStock}
-            onChange={settings.setNotifLowStock}
           />
           <Sep />
           <RowToggle
@@ -205,6 +185,18 @@ export function SettingsScreen() {
             sub="Relatório toda segunda 08h"
             value={settings.notifWeeklySummary}
             onChange={settings.setNotifWeeklySummary}
+          />
+        </View>
+
+        {/* ── Aparência ── */}
+        <SectionLabel>Aparência</SectionLabel>
+        <View style={styles.card}>
+          <RowToggle
+            Icon={Sparkles}
+            label="Abelhas voando"
+            sub="Animação decorativa nas telas do app"
+            value={settings.flyingBeesEnabled}
+            onChange={settings.setFlyingBeesEnabled}
           />
         </View>
 

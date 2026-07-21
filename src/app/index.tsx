@@ -17,8 +17,10 @@ import * as Notifications from 'expo-notifications';
 
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { AppToast } from '@/shared/components/AppToast';
-import { useAuthListener } from '@/shared/hooks/useAuth';
+import { FlyingBees } from '@/components/ui/flying-bees';
+import { useAuth, useAuthListener } from '@/shared/hooks/useAuth';
 import { useNotifications } from '@/shared/hooks/useNotifications';
+import { useSettingsStore } from '@/shared/stores/settingsStore';
 import type { RootStackParamList } from '@/navigation/types';
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -41,6 +43,12 @@ const queryClient = new QueryClient({
 function AppContent() {
   useAuthListener();
 
+  // Abelhas só na área logada (nunca em Login/Cadastro) e só quando habilitado
+  // nas Configurações — desligado por padrão (ver settingsStore).
+  const { isAuthenticated, isLoading, profile } = useAuth();
+  const flyingBeesEnabled = useSettingsStore((s) => s.flyingBeesEnabled);
+  const showFlyingBees = flyingBeesEnabled && isAuthenticated && !isLoading && !!profile;
+
   const handleNotificationResponse = useCallback(
     (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data as {
@@ -51,12 +59,12 @@ function AppContent() {
       if (data.sale_id) {
         navigationRef.navigate('App', {
           screen: 'More',
-          params: { screen: 'SaleDetail', params: { saleId: data.sale_id } },
+          params: { screen: 'SaleDetail', params: { saleId: data.sale_id }, initial: false },
         });
       } else if (data.reminder_id) {
         navigationRef.navigate('App', {
           screen: 'More',
-          params: { screen: 'ReminderDetail', params: { reminderId: data.reminder_id } },
+          params: { screen: 'ReminderDetail', params: { reminderId: data.reminder_id }, initial: false },
         });
       }
     },
@@ -65,7 +73,12 @@ function AppContent() {
 
   useNotifications(undefined, handleNotificationResponse);
 
-  return <RootNavigator />;
+  return (
+    <>
+      <RootNavigator />
+      {showFlyingBees ? <FlyingBees /> : null}
+    </>
+  );
 }
 
 export default function App() {

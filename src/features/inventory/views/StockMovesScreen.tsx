@@ -5,24 +5,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Settings2, ShoppingCart } from 'lucide-react-native';
-import { useStockMovesViewModel, type MoveTypeFilter } from '../viewmodels/useStockMovesViewModel';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ArrowLeft, ShoppingCart, ChevronRight } from 'lucide-react-native';
+import { useStockMovesViewModel } from '../viewmodels/useStockMovesViewModel';
 import type { MovementWithProduct } from '../models/inventoryService';
+import type { MoreStackParamList } from '@/navigation/types';
 
-const FILTERS: { key: MoveTypeFilter; label: string }[] = [
-  { key: 'all', label: 'Todos' },
-  { key: 'in', label: 'Entrada' },
-  { key: 'out', label: 'Saída' },
-  { key: 'adjust', label: 'Ajuste' },
-  { key: 'sale', label: 'Venda' },
-];
-
-const TYPE_CONFIG = {
-  in:     { label: 'Entrada', icon: ArrowDownToLine, color: '#2E7D32', bg: '#E4F2E4', sign: '+' },
-  out:    { label: 'Saída',   icon: ArrowUpFromLine, color: '#B3261E', bg: '#F7DCDA', sign: '−' },
-  adjust: { label: 'Ajuste',  icon: Settings2,       color: '#1565C0', bg: '#DCE9F7', sign: '±' },
-  sale:   { label: 'Venda',   icon: ShoppingCart,    color: '#C47C0A', bg: '#FCEFC8', sign: '−' },
-} as const;
+const SALE_CONFIG = { label: 'Venda', icon: ShoppingCart, color: '#C47C0A', bg: '#FCEFC8', sign: '−' } as const;
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
@@ -33,32 +22,38 @@ function formatTime(iso: string): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
-function MoveRow({ item }: { item: MovementWithProduct }) {
-  const cfg = TYPE_CONFIG[item.type as keyof typeof TYPE_CONFIG] ?? TYPE_CONFIG.adjust;
-  const Icon = cfg.icon;
+function MoveRow({ item, onPress }: { item: MovementWithProduct; onPress?: () => void }) {
+  const Icon = SALE_CONFIG.icon;
   const productName = item.product?.name ?? '—';
 
   return (
-    <View style={styles.row}>
-      <View style={[styles.rowIcon, { backgroundColor: cfg.bg }]}>
-        <Icon size={18} color={cfg.color} />
+    <Pressable
+      style={({ pressed }) => (pressed && onPress ? styles.rowPressed : undefined)}
+      onPress={onPress}
+      disabled={!onPress}
+    >
+      <View style={styles.row}>
+        <View style={[styles.rowIcon, { backgroundColor: SALE_CONFIG.bg }]}>
+          <Icon size={18} color={SALE_CONFIG.color} />
+        </View>
+        <View style={styles.rowText}>
+          <Text style={styles.rowProduct} numberOfLines={1}>{productName}</Text>
+        </View>
+        <View style={styles.rowRight}>
+          <Text style={[styles.rowQty, { color: SALE_CONFIG.color }]}>
+            {SALE_CONFIG.sign}{item.quantity}
+          </Text>
+          <Text style={styles.rowTime}>{formatTime(item.created_at)}</Text>
+        </View>
+        {onPress ? <ChevronRight size={18} color="#A89E91" style={styles.rowChevron} /> : null}
       </View>
-      <View style={styles.rowText}>
-        <Text style={styles.rowProduct} numberOfLines={1}>{productName}</Text>
-      </View>
-      <View style={styles.rowRight}>
-        <Text style={[styles.rowQty, { color: cfg.color }]}>
-          {cfg.sign}{item.quantity}
-        </Text>
-        <Text style={styles.rowTime}>{formatTime(item.created_at)}</Text>
-      </View>
-    </View>
+    </Pressable>
   );
 }
 
 export function StockMovesScreen() {
   const { top } = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   const vm = useStockMovesViewModel();
 
   return (
@@ -71,28 +66,22 @@ export function StockMovesScreen() {
         <Text style={styles.title}>Movimentações</Text>
       </View>
 
-      {/* Filtros */}
-      <View style={styles.filters}>
-        {FILTERS.map((f) => (
-          <Pressable
-            key={f.key}
-            style={[styles.chip, vm.typeFilter === f.key && styles.chipActive]}
-            onPress={() => vm.setTypeFilter(f.key)}
-          >
-            <Text style={[styles.chipText, vm.typeFilter === f.key && styles.chipTextActive]}>
-              {f.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
       {vm.isLoading ? (
         <ActivityIndicator color="#E89B12" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={vm.movements}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <MoveRow item={item} />}
+          renderItem={({ item }) => (
+            <MoveRow
+              item={item}
+              onPress={
+                item.type === 'sale' && item.reference_type === 'sale' && item.reference_id
+                  ? () => navigation.navigate('SaleDetail', { saleId: item.reference_id as string })
+                  : undefined
+              }
+            />
+          )}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
@@ -132,23 +121,6 @@ const styles = StyleSheet.create({
     fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16',
   },
 
-  filters: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1, borderColor: '#E7E2D9',
-  },
-  chipActive: { backgroundColor: '#FCEFC8', borderColor: '#F9DE91' },
-  chipText: { fontSize: 13, fontWeight: '500', color: '#6B6258' },
-  chipTextActive: { color: '#9B5F0B', fontWeight: '600' },
-
   list: { paddingHorizontal: 16, paddingBottom: 32 },
 
   row: {
@@ -158,6 +130,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
   },
+  rowPressed: { opacity: 0.85 },
+  rowChevron: { marginLeft: 6 },
   rowIcon: {
     width: 40, height: 40, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',

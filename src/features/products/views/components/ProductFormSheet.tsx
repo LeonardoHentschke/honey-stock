@@ -106,26 +106,6 @@ export function ProductFormSheet({ visible, mode, product, onSuccess, onClose }:
               />
             </View>
 
-            {/* Estoque (só no cadastro) + mínimo */}
-            <View style={styles.row}>
-              {mode === 'create' && (
-                <NumberField
-                  control={vm.control}
-                  name="stock_quantity"
-                  label="Estoque inicial"
-                  placeholder="0"
-                  error={vm.errors.stock_quantity?.message}
-                />
-              )}
-              <NumberField
-                control={vm.control}
-                name="min_stock"
-                label="Estoque mínimo"
-                placeholder="0"
-                error={vm.errors.min_stock?.message}
-              />
-            </View>
-
             {/* Descrição */}
             <Controller
               control={vm.control}
@@ -184,7 +164,7 @@ function NumberField({
   error,
 }: {
   control: Control<CreateProductValues>;
-  name: 'sale_price' | 'cost_price' | 'stock_quantity' | 'min_stock';
+  name: 'sale_price' | 'cost_price';
   label: string;
   placeholder: string;
   prefix?: string;

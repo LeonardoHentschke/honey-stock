@@ -15,8 +15,9 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/format';
 import { useReminderDetailViewModel } from '../viewmodels/useReminderDetailViewModel';
 import type { MoreStackParamList } from '@/navigation/types';
-import type { ReminderStatus } from '@/shared/types/database.types';
+import type { Database } from '@/shared/types/database.types';
 
+type ReminderStatus = Database['public']['Enums']['reminder_status'];
 type Props = NativeStackScreenProps<MoreStackParamList, 'ReminderDetail'>;
 
 const STATUS_COLORS: Partial<Record<ReminderStatus, { bg: string; text: string; label: string }>> = {
@@ -31,6 +32,16 @@ export function ReminderDetailScreen({ route }: Props) {
   const { top, bottom } = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   const vm = useReminderDetailViewModel(reminderId);
+
+  // Ver comentário equivalente em SaleDetailScreen: chega aqui via navegação
+  // aninhada de outra aba, então pode não ter histórico atrás para goBack().
+  function handleBack() {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('MoreHome');
+    }
+  }
 
   function handleCancel() {
     Alert.alert(
@@ -55,7 +66,7 @@ export function ReminderDetailScreen({ route }: Props) {
     return (
       <View style={[styles.root, styles.centered]}>
         <Text style={styles.errorText}>{vm.error ?? 'Lembrete não encontrado.'}</Text>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backLink}>
+        <Pressable onPress={handleBack} style={styles.backLink}>
           <Text style={styles.backLinkText}>Voltar</Text>
         </Pressable>
       </View>
@@ -72,7 +83,7 @@ export function ReminderDetailScreen({ route }: Props) {
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
+        <Pressable onPress={handleBack} hitSlop={8} style={styles.backBtn}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
         <Text style={styles.title}>Lembrete</Text>

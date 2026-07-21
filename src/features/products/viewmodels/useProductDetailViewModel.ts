@@ -16,7 +16,6 @@ export function useProductDetailViewModel(productId: string) {
   const queryClient = useQueryClient();
 
   const [showEditSheet, setShowEditSheet] = useState(false);
-  const [showMovementSheet, setShowMovementSheet] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
   const query = useQuery<Product, Error>({
@@ -35,6 +34,7 @@ export function useProductDetailViewModel(productId: string) {
     mutationFn: () => productService.deactivate(productId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products', profile?.company_id] });
+      queryClient.invalidateQueries({ queryKey: ['products-active', profile?.company_id] });
       navigation.goBack();
     },
     onError: (err) => setMutationError(humanizeError(err)),
@@ -48,7 +48,6 @@ export function useProductDetailViewModel(productId: string) {
     error: query.error,
     mutationError,
     showEditSheet,
-    showMovementSheet,
     companyId: profile?.company_id ?? '',
     refresh: () => {
       query.refetch();
@@ -56,12 +55,11 @@ export function useProductDetailViewModel(productId: string) {
     },
     openEditSheet: () => setShowEditSheet(true),
     closeEditSheet: () => setShowEditSheet(false),
-    openMovementSheet: () => setShowMovementSheet(true),
-    closeMovementSheet: () => setShowMovementSheet(false),
     onSheetSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
       queryClient.invalidateQueries({ queryKey: ['movements', productId] });
       queryClient.invalidateQueries({ queryKey: ['products', profile?.company_id] });
+      queryClient.invalidateQueries({ queryKey: ['products-active', profile?.company_id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
     deactivateProduct: () => deactivateMutation.mutate(),

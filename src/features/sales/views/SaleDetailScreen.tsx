@@ -56,6 +56,17 @@ export function SaleDetailScreen({ route, navigation }: Props) {
     }
   }, [vm.isPaymentRegistered, vm.resetPaymentMutation]);
 
+  // Tela pode ser aberta via navegação aninhada de outra aba (Dashboard,
+  // notificação push) ou já no topo da pilha de "Mais" sem histórico atrás —
+  // nesses casos goBack() não teria para onde ir, então caímos na Home da aba.
+  function handleBack() {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('MoreHome');
+    }
+  }
+
   function handleCancel() {
     Alert.alert(
       'Cancelar venda',
@@ -97,7 +108,7 @@ export function SaleDetailScreen({ route, navigation }: Props) {
     return (
       <View style={[styles.root, styles.centered]}>
         <Text style={styles.errorText}>{vm.error ?? 'Venda não encontrada.'}</Text>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backLink}>
+        <Pressable onPress={handleBack} style={styles.backLink}>
           <Text style={styles.backLinkText}>Voltar</Text>
         </Pressable>
       </View>
@@ -116,7 +127,7 @@ export function SaleDetailScreen({ route, navigation }: Props) {
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
+        <Pressable onPress={handleBack} hitSlop={8} style={styles.backBtn}>
           <ArrowLeft size={22} color="#1F1B16" />
         </Pressable>
         <Text style={styles.title}>Detalhe da venda</Text>

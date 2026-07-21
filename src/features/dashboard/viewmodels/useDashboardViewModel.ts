@@ -20,7 +20,6 @@ export interface DashboardData {
   todaySalesCount: number;
   monthRevenue: string;
   bestSeller: string;
-  lowStockCount: number;
   pendingRemindersCount: number;
   nextDeliveries: NextDelivery[];
 }
@@ -78,12 +77,11 @@ async function fetchDashboard(
   companyId: string,
   fullName: string
 ): Promise<DashboardData> {
-  const [companyName, today, month, lowStockCount, pendingRemindersCount, rawDeliveries] =
+  const [companyName, today, month, pendingRemindersCount, rawDeliveries] =
     await Promise.all([
       dashboardService.getCompanyName(companyId),
       dashboardService.getTodaySales(companyId),
       dashboardService.getMonthSales(companyId),
-      dashboardService.getLowStockCount(companyId),
       dashboardService.getPendingRemindersCount(companyId),
       dashboardService.getNextDeliveries(companyId),
     ]);
@@ -99,7 +97,6 @@ async function fetchDashboard(
     todaySalesCount: today.count,
     monthRevenue: formatCurrency(month.total),
     bestSeller,
-    lowStockCount,
     pendingRemindersCount,
     nextDeliveries: rawDeliveries.map(buildDelivery),
   };
@@ -124,7 +121,6 @@ export function useDashboardViewModel() {
     todaySalesCount: 0,
     monthRevenue: formatCurrency(0),
     bestSeller: '-',
-    lowStockCount: 0,
     pendingRemindersCount: 0,
     nextDeliveries: [],
   };

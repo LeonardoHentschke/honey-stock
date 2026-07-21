@@ -40,7 +40,7 @@ export function NewSaleScreen() {
   const navigation = useNavigation<NavigationProp<AppTabsParamList>>();
   const vm = useNewSaleViewModel({
     onSaleCreated: (saleId) =>
-      navigation.navigate('More', { screen: 'SaleDetail', params: { saleId } }),
+      navigation.navigate('More', { screen: 'SaleDetail', params: { saleId }, initial: false }),
   });
 
   const [showProductSheet, setShowProductSheet] = useState(false);

@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { ArrowLeft, TrendingUp, Package, BarChart2 } from 'lucide-react-native';
+import { ArrowLeft, TrendingUp, BarChart2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { CartesianChart, Line, Bar } from 'victory-native';
@@ -16,7 +16,6 @@ import { formatCurrency } from '@/shared/lib/format';
 import { SectionHeader } from '@/components/ui/section-header';
 import { useReportsViewModel, type PeriodOption } from '../viewmodels/useReportsViewModel';
 import type { BreakdownRow, SalesByDayPoint, TopProductPoint } from '../viewmodels/useReportsViewModel';
-import type { LowStockProduct } from '../models/reportsService';
 
 const PERIODS: { key: PeriodOption; label: string }[] = [
   { key: '7d', label: '7 dias' },
@@ -152,19 +151,6 @@ export function ReportsScreen() {
               <Text style={styles.emptyText}>Nenhuma venda no período.</Text>
             )}
           </View>
-
-          {/* Estoque crítico */}
-          <SectionHeader style={styles.sectionHeader}>
-            <Package size={14} color="#6B6258" />
-            {'  '}Estoque crítico
-          </SectionHeader>
-          <View style={styles.card}>
-            {vm.lowStockProducts.length > 0 ? (
-              vm.lowStockProducts.map((p, i) => <StockRow key={`${p.product_name}-${i}`} product={p} />)
-            ) : (
-              <Text style={styles.emptyTextGreen}>Nenhum produto em nível crítico.</Text>
-            )}
-          </View>
         </ScrollView>
       )}
     </View>
@@ -196,21 +182,6 @@ function PercentRow({ row }: { row: BreakdownRow }) {
       </View>
       <View style={styles.percentTrack}>
         <View style={[styles.percentFill, { width: `${row.pct}%` }]} />
-      </View>
-    </View>
-  );
-}
-
-function StockRow({ product }: { product: LowStockProduct }) {
-  return (
-    <View style={styles.stockRow}>
-      <View style={styles.stockInfo}>
-        <Text style={styles.stockName} numberOfLines={1}>{product.product_name}</Text>
-      </View>
-      <View style={styles.stockBadge}>
-        <Text style={styles.stockBadgeText}>
-          {product.stock_quantity} / {product.min_stock}
-        </Text>
       </View>
     </View>
   );
@@ -336,24 +307,6 @@ const styles = StyleSheet.create({
   },
   percentFill: { height: 6, backgroundColor: '#E89B12', borderRadius: 3 },
 
-  stockRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F1EA',
-  },
-  stockInfo: { flex: 1, gap: 2 },
-  stockName: { fontSize: 14, fontWeight: '600', color: '#1F1B16' },
-  stockSku: { fontSize: 12, color: '#A89E91' },
-  stockBadge: {
-    backgroundColor: '#FDECEA',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  stockBadgeText: { fontSize: 12, fontWeight: '700', color: '#B3261E' },
-
   chartLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -366,5 +319,4 @@ const styles = StyleSheet.create({
 
   emptyChart: { height: 80, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 13, color: '#A89E91', textAlign: 'center' },
-  emptyTextGreen: { fontSize: 13, color: '#065F46', textAlign: 'center' },
 });

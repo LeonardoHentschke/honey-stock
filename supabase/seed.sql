@@ -58,24 +58,17 @@ insert into profiles (id, company_id, full_name) values
    'Dev Local');
 
 -- ── Produtos ─────────────────────────────────────────────────────────────────
--- Estoque começa em 0 e é preenchido via stock_movements (trigger
--- apply_stock_movement), mantendo o histórico consistente.
-insert into products (id, company_id, name, description, cost_price, sale_price, min_stock) values
+-- Sem saldo de estoque — o único registro que existe é o de vendas
+-- (stock_movements tipo 'sale', gerado por trigger a partir de sale_items).
+insert into products (id, company_id, name, description, cost_price, sale_price) values
   ('33333333-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
-   'Mel Silvestre 500g', 'Pote de vidro 500g', 12.00, 25.00, 10),
+   'Mel Silvestre 500g', 'Pote de vidro 500g', 12.00, 25.00),
   ('33333333-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
-   'Mel Silvestre 1kg', 'Pote de vidro 1kg', 22.00, 45.00, 5),
+   'Mel Silvestre 1kg', 'Pote de vidro 1kg', 22.00, 45.00),
   ('33333333-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111',
-   'Mel de Eucalipto 500g', 'Pote de vidro 500g', 13.00, 28.00, 10),
+   'Mel de Eucalipto 500g', 'Pote de vidro 500g', 13.00, 28.00),
   ('33333333-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111',
-   'Mel de Laranjeira 250g', 'Bisnaga 250g', 8.00, 16.00, 15);
-
-insert into stock_movements (company_id, product_id, type, quantity, unit_cost, notes, user_id) values
-  ('11111111-1111-1111-1111-111111111111', '33333333-0000-0000-0000-000000000001', 'in', 40, 12.00, 'Envase inicial (seed)', '22222222-2222-2222-2222-222222222222'),
-  ('11111111-1111-1111-1111-111111111111', '33333333-0000-0000-0000-000000000002', 'in', 20, 22.00, 'Envase inicial (seed)', '22222222-2222-2222-2222-222222222222'),
-  ('11111111-1111-1111-1111-111111111111', '33333333-0000-0000-0000-000000000003', 'in', 25, 13.00, 'Envase inicial (seed)', '22222222-2222-2222-2222-222222222222'),
-  -- Laranjeira fica abaixo do min_stock (15) para exercitar o alerta de estoque baixo
-  ('11111111-1111-1111-1111-111111111111', '33333333-0000-0000-0000-000000000004', 'in', 8, 8.00, 'Envase inicial (seed)', '22222222-2222-2222-2222-222222222222');
+   'Mel de Laranjeira 250g', 'Bisnaga 250g', 8.00, 16.00);
 
 -- ── Clientes ─────────────────────────────────────────────────────────────────
 insert into customers (id, company_id, type, name, business_name, phone, email, reseller_discount_percent) values

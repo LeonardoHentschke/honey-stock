@@ -1,340 +1,681 @@
-/**
- * Tipos gerados automaticamente pelo Supabase CLI.
- *
- * Para regenerar após criar o projeto Supabase:
- *   npx supabase gen types typescript --project-id <SEU_PROJECT_ID> > src/shared/types/database.types.ts
- *
- * Enquanto o projeto Supabase não está criado, usamos este placeholder
- * com os tipos derivados do schema SQL do CLAUDE.md §4.
- */
-
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-// ─── Enums ───────────────────────────────────────────────────────────────────
-
-export type CustomerType = 'final' | 'reseller';
-export type StockMovementType = 'in' | 'out' | 'adjust' | 'sale';
-export type SaleStatus = 'scheduled' | 'completed' | 'delivered' | 'canceled';
-export type PaymentMethod = 'cash' | 'card' | 'pix' | 'credit' | 'other';
-export type ReminderStatus = 'pending' | 'sent' | 'canceled' | 'failed';
-
-// ─── Tabelas ─────────────────────────────────────────────────────────────────
-
-export interface Database {
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       companies: {
         Row: {
-          id: string;
-          name: string;
-          invite_code: string;
-          created_at: string;
-        };
+          created_at: string
+          id: string
+          invite_code: string
+          name: string
+        }
         Insert: {
-          id?: string;
-          name: string;
-          invite_code?: string;
-          created_at?: string;
-        };
-        Update: Partial<Database['public']['Tables']['companies']['Insert']>;
-        Relationships: [];
-      };
-
-      profiles: {
-        Row: {
-          id: string;
-          company_id: string;
-          full_name: string;
-          created_at: string;
-        };
-        Insert: {
-          id: string;
-          company_id: string;
-          full_name: string;
-          created_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['profiles']['Insert'], 'id'>>;
-        Relationships: [];
-      };
-
-      device_tokens: {
-        Row: {
-          id: string;
-          user_id: string;
-          company_id: string;
-          expo_push_token: string;
-          platform: string;
-          created_at: string;
-          last_seen_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          company_id: string;
-          expo_push_token: string;
-          platform: string;
-          created_at?: string;
-          last_seen_at?: string;
-        };
-        Update: Partial<Database['public']['Tables']['device_tokens']['Insert']>;
-        Relationships: [];
-      };
-
-      products: {
-        Row: {
-          id: string;
-          company_id: string;
-          name: string;
-          description: string | null;
-          cost_price: number;
-          sale_price: number;
-          stock_quantity: number;
-          min_stock: number;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          company_id: string;
-          name: string;
-          description?: string | null;
-          cost_price?: number;
-          sale_price?: number;
-          stock_quantity?: number;
-          min_stock?: number;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['products']['Insert'], 'company_id'>>;
-        Relationships: [];
-      };
-
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
-          id: string;
-          company_id: string;
-          type: CustomerType;
-          name: string;
-          business_name: string | null;
-          document: string | null;
-          phone: string | null;
-          email: string | null;
-          address: string | null;
-          reseller_discount_percent: number | null;
-          notes: string | null;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
+          address: string | null
+          business_name: string | null
+          company_id: string
+          created_at: string
+          document: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          reseller_discount_percent: number | null
+          type: Database["public"]["Enums"]["customer_type"]
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          company_id: string;
-          type?: CustomerType;
-          name: string;
-          business_name?: string | null;
-          document?: string | null;
-          phone?: string | null;
-          email?: string | null;
-          address?: string | null;
-          reseller_discount_percent?: number | null;
-          notes?: string | null;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['customers']['Insert'], 'company_id'>>;
-        Relationships: [];
-      };
-
-      stock_movements: {
+          address?: string | null
+          business_name?: string | null
+          company_id: string
+          created_at?: string
+          document?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          reseller_discount_percent?: number | null
+          type?: Database["public"]["Enums"]["customer_type"]
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          business_name?: string | null
+          company_id?: string
+          created_at?: string
+          document?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          reseller_discount_percent?: number | null
+          type?: Database["public"]["Enums"]["customer_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_tokens: {
         Row: {
-          id: string;
-          company_id: string;
-          product_id: string;
-          type: StockMovementType;
-          quantity: number;
-          unit_cost: number | null;
-          reference_type: string | null;
-          reference_id: string | null;
-          notes: string | null;
-          user_id: string;
-          created_at: string;
-        };
+          company_id: string
+          created_at: string
+          expo_push_token: string
+          id: string
+          last_seen_at: string
+          platform: string
+          user_id: string
+        }
         Insert: {
-          id?: string;
-          company_id: string;
-          product_id: string;
-          type: StockMovementType;
-          quantity: number;
-          unit_cost?: number | null;
-          reference_type?: string | null;
-          reference_id?: string | null;
-          notes?: string | null;
-          user_id: string;
-          created_at?: string;
-        };
-        Update: never;
-        Relationships: [];
-      };
-
-      sales: {
+          company_id: string
+          created_at?: string
+          expo_push_token: string
+          id?: string
+          last_seen_at?: string
+          platform: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          expo_push_token?: string
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
         Row: {
-          id: string;
-          company_id: string;
-          customer_id: string | null;
-          user_id: string;
-          total: number;
-          discount: number;
-          payment_method: PaymentMethod;
-          status: SaleStatus;
-          scheduled_for: string | null;
-          notes: string | null;
-          created_at: string;
-        };
+          company_id: string
+          cost_price: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sale_price: number
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          company_id: string;
-          customer_id?: string | null;
-          user_id: string;
-          total?: number;
-          discount?: number;
-          payment_method?: PaymentMethod;
-          status?: SaleStatus;
-          scheduled_for?: string | null;
-          notes?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['sales']['Insert'], 'company_id'>>;
-        Relationships: [];
-      };
-
-      sale_items: {
+          company_id: string
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sale_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sale_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
         Row: {
-          id: string;
-          sale_id: string;
-          product_id: string;
-          quantity: number;
-          unit_price: number;
-          subtotal: number;
-        };
+          company_id: string
+          created_at: string
+          full_name: string
+          id: string
+        }
         Insert: {
-          id?: string;
-          sale_id: string;
-          product_id: string;
-          quantity: number;
-          unit_price: number;
-          subtotal: number;
-        };
-        Update: never;
-        Relationships: [];
-      };
-
-      sale_payments: {
-        Row: {
-          id: string;
-          company_id: string;
-          sale_id: string;
-          amount: number;
-          method: PaymentMethod;
-          paid_at: string;
-          notes: string | null;
-          created_by: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          company_id: string;
-          sale_id: string;
-          amount: number;
-          method?: PaymentMethod;
-          paid_at?: string;
-          notes?: string | null;
-          created_by: string;
-          created_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['sale_payments']['Insert'], 'company_id' | 'sale_id' | 'created_by'>>;
-        Relationships: [];
-      };
-
-      reminders: {
-        Row: {
-          id: string;
-          company_id: string;
-          sale_id: string | null;
-          created_by: string;
-          title: string;
-          body: string | null;
-          remind_at: string;
-          status: ReminderStatus;
-          sent_at: string | null;
-          error: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          company_id: string;
-          sale_id?: string | null;
-          created_by: string;
-          title: string;
-          body?: string | null;
-          remind_at: string;
-          status?: ReminderStatus;
-          sent_at?: string | null;
-          error?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Omit<Database['public']['Tables']['reminders']['Insert'], 'company_id' | 'created_by'>>;
-        Relationships: [];
-      };
-
+          company_id: string
+          created_at?: string
+          full_name: string
+          id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminder_recipients: {
         Row: {
-          reminder_id: string;
-          user_id: string;
-        };
+          reminder_id: string
+          user_id: string
+        }
         Insert: {
-          reminder_id: string;
-          user_id: string;
-        };
-        Update: never;
-        Relationships: [];
-      };
-    };
-    Views: Record<string, never>;
+          reminder_id: string
+          user_id: string
+        }
+        Update: {
+          reminder_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_recipients_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          body: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          error: string | null
+          id: string
+          remind_at: string
+          sale_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["reminder_status"]
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          error?: string | null
+          id?: string
+          remind_at: string
+          sale_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["reminder_status"]
+          title: string
+        }
+        Update: {
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          error?: string | null
+          id?: string
+          remind_at?: string
+          sale_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["reminder_status"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_items: {
+        Row: {
+          id: string
+          product_id: string
+          quantity: number
+          sale_id: string
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          quantity: number
+          sale_id: string
+          subtotal: number
+          unit_price: number
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          quantity?: number
+          sale_id?: string
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          notes: string | null
+          paid_at: string
+          sale_id: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          paid_at?: string
+          sale_id: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          paid_at?: string
+          sale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          company_id: string
+          created_at: string
+          customer_id: string | null
+          discount: number
+          id: string
+          notes: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["sale_status"]
+          total: number
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          customer_id?: string | null
+          discount?: number
+          id?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["sale_status"]
+          total?: number
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          customer_id?: string | null
+          discount?: number
+          id?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["sale_status"]
+          total?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          reference_id: string | null
+          reference_type: string | null
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          unit_cost: number | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          reference_id?: string | null
+          reference_type?: string | null
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          unit_cost?: number | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+          unit_cost?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
-      current_company_id: {
-        Args: Record<string, never>;
-        Returns: string;
-      };
-      get_company_by_invite: {
-        Args: { p_code: string };
-        Returns: string | null;
-      };
+      current_company_id: { Args: never; Returns: string }
+      get_company_by_invite: { Args: { p_code: string }; Returns: string }
       pick_due_reminders: {
-        Args: { p_limit: number };
-        Returns: Array<{
-          id: string;
-          title: string;
-          body: string | null;
-          sale_id: string | null;
-          recipient_ids: string[];
-        }>;
-      };
-    };
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          id: string
+          recipient_ids: string[]
+          sale_id: string
+          title: string
+        }[]
+      }
+      signup_owner: {
+        Args: { p_company_name: string; p_full_name: string }
+        Returns: string
+      }
+    }
     Enums: {
-      customer_type: CustomerType;
-      stock_movement_type: StockMovementType;
-      sale_status: SaleStatus;
-      payment_method: PaymentMethod;
-      reminder_status: ReminderStatus;
-    };
-  };
+      customer_type: "final" | "reseller"
+      payment_method: "cash" | "card" | "pix" | "credit" | "other"
+      reminder_status: "pending" | "sent" | "canceled" | "failed"
+      sale_status: "scheduled" | "completed" | "delivered" | "canceled"
+      stock_movement_type: "in" | "out" | "adjust" | "sale"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      customer_type: ["final", "reseller"],
+      payment_method: ["cash", "card", "pix", "credit", "other"],
+      reminder_status: ["pending", "sent", "canceled", "failed"],
+      sale_status: ["scheduled", "completed", "delivered", "canceled"],
+      stock_movement_type: ["in", "out", "adjust", "sale"],
+    },
+  },
+} as const
+

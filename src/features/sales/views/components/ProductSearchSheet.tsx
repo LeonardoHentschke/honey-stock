@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Search, Package } from 'lucide-react-native';
 import { ProductTile } from '@/shared/components/ProductTile';
-import { formatCurrency, formatQuantity } from '@/shared/lib/format';
+import { formatCurrency } from '@/shared/lib/format';
 import type { Product } from '@/features/products/models/productService';
 
 interface Props {
@@ -110,14 +110,11 @@ export function ProductSearchSheet({
 }
 
 function ProductRow({ product, onPress }: { product: Product; onPress: () => void }) {
-  const outOfStock = product.stock_quantity <= 0;
-  const isLow = product.stock_quantity <= product.min_stock && product.min_stock > 0;
   return (
     <Pressable
-      style={[styles.row, outOfStock ? styles.rowDim : null]}
+      style={styles.row}
       android_ripple={{ color: '#FDFAF4' }}
       onPress={onPress}
-      disabled={outOfStock}
     >
       <ProductTile name={product.name} size={56} />
 
@@ -126,19 +123,10 @@ function ProductRow({ product, onPress }: { product: Product; onPress: () => voi
           <Text style={styles.rowName} numberOfLines={1}>
             {product.name}
           </Text>
-          {isLow && !outOfStock && (
-            <View style={styles.lowStockBadge}>
-              <Text style={styles.lowStockText}>baixo</Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.metaRow}>
           <Text style={styles.rowPrice}>{formatCurrency(product.sale_price)}</Text>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={[styles.rowStock, (isLow || outOfStock) && styles.rowStockLow]}>
-            {outOfStock ? 'Sem estoque' : formatQuantity(product.stock_quantity, 'un')}
-          </Text>
         </View>
       </View>
     </Pressable>
@@ -190,7 +178,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E7E2D9',
   },
-  rowDim: { opacity: 0.5 },
   rowBody: { flex: 1, minWidth: 0, gap: 2 },
   rowTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowName: {
@@ -200,21 +187,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F1B16',
   },
-  lowStockBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#FBEAD0',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 9999,
-  },
-  lowStockText: { fontSize: 11, color: '#C77700', fontWeight: '600' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   rowPrice: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: '#1F1B16' },
-  metaDot: { fontSize: 12, color: '#A89E91' },
-  rowStock: { fontSize: 12, color: '#6B6258' },
-  rowStockLow: { color: '#C77700', fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
   emptyTitle: { fontSize: 17, fontWeight: '600', color: '#1F1B16', textAlign: 'center' },
   emptyBody: { fontSize: 15, color: '#6B6258', textAlign: 'center' },

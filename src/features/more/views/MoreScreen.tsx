@@ -109,7 +109,7 @@ export function MoreScreen() {
         {
           Icon: ArrowLeftRight,
           label: 'Movimentações de estoque',
-          subtitle: 'Entradas, saídas e ajustes',
+          subtitle: 'Histórico de saídas por venda',
           onPress: () => navigation.navigate('StockMoves'),
         },
       ],

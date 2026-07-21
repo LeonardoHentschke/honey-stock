@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { productService, type Product } from '../models/productService';
 import { createProductSchema, type CreateProductValues } from '../models/productSchemas';
@@ -15,6 +15,7 @@ interface UseProductFormProps {
 
 export function useProductFormViewModel({ mode, product, onSuccess }: UseProductFormProps) {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
 
   const { control, handleSubmit, formState: { errors }, reset } = useForm<CreateProductValues>({
     resolver: zodResolver(createProductSchema),
@@ -23,8 +24,6 @@ export function useProductFormViewModel({ mode, product, onSuccess }: UseProduct
       description: null,
       sale_price: 0,
       cost_price: 0,
-      stock_quantity: 0,
-      min_stock: 0,
     },
   });
 
@@ -35,8 +34,6 @@ export function useProductFormViewModel({ mode, product, onSuccess }: UseProduct
         description: product.description,
         sale_price: product.sale_price,
         cost_price: product.cost_price,
-        stock_quantity: product.stock_quantity,
-        min_stock: product.min_stock,
       });
     }
   }, [mode, product, reset]);
@@ -44,13 +41,16 @@ export function useProductFormViewModel({ mode, product, onSuccess }: UseProduct
   const mutation = useMutation({
     mutationFn: (values: CreateProductValues) => {
       if (mode === 'edit' && product) {
-        // estoque não é editado pelo form (usa movimentações); só os demais campos.
-        const { stock_quantity: _stock, ...rest } = values;
-        return productService.update(product.id, rest);
+        return productService.update(product.id, values);
       }
       return productService.create(profile!.company_id, values);
     },
-    onSuccess,
+    onSuccess: () => {
+      // 'products-active' é a query própria do PDV (NewSaleScreen) — sem essa
+      // invalidação, um produto recém-criado não aparece na busca da venda.
+      queryClient.invalidateQueries({ queryKey: ['products-active', profile?.company_id] });
+      onSuccess();
+    },
   });
 
   return {

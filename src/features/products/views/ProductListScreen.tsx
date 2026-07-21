@@ -9,13 +9,13 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Plus, Search, Package, AlertTriangle } from 'lucide-react-native';
+import { Plus, Search, Package } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProductListViewModel } from '../viewmodels/useProductListViewModel';
 import { ProductFormSheet } from './components/ProductFormSheet';
 import { ProductTile } from '@/shared/components/ProductTile';
-import { formatCurrency, formatQuantity } from '@/shared/lib/format';
+import { formatCurrency } from '@/shared/lib/format';
 import type { Product } from '../models/productService';
 
 export function ProductListScreen() {
@@ -50,19 +50,6 @@ export function ProductListScreen() {
             clearButtonMode="while-editing"
           />
         </View>
-        <View style={styles.filterRow}>
-          <FilterChip
-            label="Todas"
-            active={!vm.filterLowStock}
-            onPress={() => vm.setFilterLowStock(false)}
-          />
-          <FilterChip
-            label="Estoque baixo"
-            active={vm.filterLowStock}
-            onPress={() => vm.setFilterLowStock(true)}
-            icon={<AlertTriangle size={13} color={vm.filterLowStock ? '#9B5F0B' : '#A89E91'} />}
-          />
-        </View>
       </View>
 
       {/* ── Lista ─────────────────────────────────────────── */}
@@ -91,7 +78,7 @@ export function ProductListScreen() {
           }
           ListEmptyComponent={
             <EmptyState
-              hasFilter={!!vm.search || vm.filterLowStock}
+              hasFilter={!!vm.search}
               onAdd={() => vm.setShowCreateSheet(true)}
             />
           }
@@ -112,30 +99,6 @@ export function ProductListScreen() {
 
 // ─── Sub-componentes ────────────────────────────────────────────────────────
 
-function FilterChip({
-  label,
-  active,
-  onPress,
-  icon,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <Pressable
-      style={[styles.filterChip, active && styles.filterChipActive]}
-      onPress={onPress}
-    >
-      {icon}
-      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 function ProductRow({
   product,
   onPress,
@@ -143,8 +106,6 @@ function ProductRow({
   product: Product;
   onPress: () => void;
 }) {
-  const isLow = product.stock_quantity <= product.min_stock && product.min_stock > 0;
-
   return (
     <Pressable
       style={styles.card}
@@ -158,19 +119,10 @@ function ProductRow({
           <Text style={styles.productName} numberOfLines={1}>
             {product.name}
           </Text>
-          {isLow && (
-            <View style={styles.lowStockBadge}>
-              <Text style={styles.lowStockText}>baixo</Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.metaRow}>
           <Text style={styles.variantPrice}>{formatCurrency(product.sale_price)}</Text>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={[styles.variantStock, isLow && styles.variantStockLow]}>
-            {formatQuantity(product.stock_quantity, 'un')}
-          </Text>
         </View>
       </View>
 
@@ -244,21 +196,6 @@ const styles = StyleSheet.create({
     borderColor: '#E7E2D9',
   },
   searchInput: { flex: 1, fontSize: 15, color: '#1F1B16' },
-  filterRow: { flexDirection: 'row', gap: 8 },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E7E2D9',
-    backgroundColor: '#FFFFFF',
-  },
-  filterChipActive: { borderColor: '#C47C0A', backgroundColor: '#FCEFC8' },
-  filterChipText: { fontSize: 13, color: '#6B6258' },
-  filterChipTextActive: { color: '#9B5F0B', fontWeight: '600' },
 
   listContent: { paddingHorizontal: 24, paddingBottom: 32, gap: 12 },
 
@@ -284,24 +221,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F1B16',
   },
-  lowStockBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#FBEAD0',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 9999,
-  },
-  lowStockText: { fontSize: 11, color: '#C77700', fontWeight: '600' },
-
   variantName: { fontSize: 12, lineHeight: 16, color: '#6B6258' },
   noVariantText: { fontSize: 12, lineHeight: 16, color: '#A89E91', fontStyle: 'italic', marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  metaDot: { fontSize: 12, color: '#A89E91' },
   variantPrice: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: '#1F1B16' },
-  variantStock: { fontSize: 12, color: '#6B6258' },
-  variantStockLow: { color: '#C77700', fontWeight: '600' },
 
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyIconWrap: {

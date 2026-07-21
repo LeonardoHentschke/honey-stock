@@ -17,7 +17,9 @@ import { useRemindersListViewModel } from '../viewmodels/useRemindersListViewMod
 import { ReminderFormSheet } from './components/ReminderFormSheet';
 import type { MoreStackParamList } from '@/navigation/types';
 import type { Reminder } from '../models/remindersService';
-import type { ReminderStatus } from '@/shared/types/database.types';
+import type { Database } from '@/shared/types/database.types';
+
+type ReminderStatus = Database['public']['Enums']['reminder_status'];
 
 const STATUS_COLORS: Record<Extract<ReminderStatus, 'pending' | 'failed'>, { bg: string; text: string; label: string }> = {
   pending: { bg: '#DBEAFE', text: '#1E40AF', label: 'Aguardando' },

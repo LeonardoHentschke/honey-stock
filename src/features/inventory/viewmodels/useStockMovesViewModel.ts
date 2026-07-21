@@ -1,21 +1,13 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { inventoryService, type MovementWithProduct } from '../models/inventoryService';
 
-export type MoveTypeFilter = 'all' | 'in' | 'out' | 'adjust' | 'sale';
-
 export function useStockMovesViewModel() {
   const { profile } = useAuth();
-  const [typeFilter, setTypeFilter] = useState<MoveTypeFilter>('all');
 
   const query = useQuery<MovementWithProduct[], Error>({
-    queryKey: ['stockMoves', profile?.company_id, typeFilter],
-    queryFn: () =>
-      inventoryService.listAllMovements(
-        profile!.company_id,
-        typeFilter === 'all' ? null : typeFilter,
-      ),
+    queryKey: ['stockMoves', profile?.company_id],
+    queryFn: () => inventoryService.listAllMovements(profile!.company_id),
     enabled: !!profile,
     staleTime: 30_000,
   });
@@ -25,8 +17,6 @@ export function useStockMovesViewModel() {
     isLoading: query.isLoading,
     isRefetching: query.isRefetching,
     error: query.error,
-    typeFilter,
-    setTypeFilter,
     refresh: query.refetch,
   };
 }

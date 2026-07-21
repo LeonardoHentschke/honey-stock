@@ -39,7 +39,7 @@ export type MoreStackParamList = {
 
 // ─── Products Stack ───────────────────────────────────────────────────────────
 export type ProductsStackParamList = {
-  ProductList: { filterLowStock?: boolean } | undefined;
+  ProductList: undefined;
   ProductDetail: { productId: string };
 };
 

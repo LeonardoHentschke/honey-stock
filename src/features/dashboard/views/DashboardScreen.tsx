@@ -14,7 +14,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   Bell,
-  AlertTriangle,
   BellRing,
   ChevronRight,
   ArrowRight,
@@ -123,26 +122,8 @@ export function DashboardScreen() {
           </ScrollView>
         )}
 
-        {/* ── Resumo: estoque + lembretes ───────────────────── */}
+        {/* ── Resumo: lembretes ──────────────────────────────── */}
         <View style={styles.summary}>
-          <CardRow
-            iconBg="#FFF3E0"
-            iconColor="#C77700"
-            Icon={AlertTriangle}
-            title="Estoque baixo"
-            subtitle={
-              vm.lowStockCount > 0
-                ? `${vm.lowStockCount} produto${vm.lowStockCount > 1 ? 's' : ''} precisam reposição`
-                : 'Nenhum produto em baixo estoque'
-            }
-            onPress={() =>
-              navigation.navigate('Products', {
-                screen: 'ProductList',
-                params: { filterLowStock: true },
-                initial: false,
-              })
-            }
-          />
           <CardRow
             iconBg="#FCEFC8"
             iconColor="#9B5F0B"

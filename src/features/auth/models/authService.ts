@@ -45,12 +45,12 @@ export async function signIn(email: string, password: string): Promise<void> {
 
 /**
  * Cria uma nova conta de dono de empresa.
- * Fluxo: auth.signUp → insert company → insert profile.
+ * Fluxo: auth.signUp → RPC `signup_owner` (cria empresa + perfil atomicamente,
+ * security definer — o client não consegue inserir direto porque o usuário
+ * ainda não tem profile e as policies de RLS dependem de current_company_id()).
  *
  * ⚠️  Requer "Confirm email" DESABILITADO no Supabase Dashboard
  *     (Authentication → Email → desmarcar "Enable email confirmations").
- *     Em produção, usar um Edge Function com service_role para criação
- *     de empresa + perfil.
  *
  * @returns userId — para o caller recarregar o perfil no store após os inserts.
  */
@@ -73,35 +73,16 @@ export async function signUpOwner(
     throw new ServiceError('Erro ao criar usuário. Tente novamente.');
   }
 
-  // 2. Criar empresa
-  const { data: company, error: companyError } = await supabase
-    .from('companies')
-    .insert({ name: companyName })
-    .select('id')
-    .single();
-
-  console.log('[signUpOwner] insert company → id:', company?.id, '| error:', companyError?.message, companyError?.details);
-
-  if (companyError || !company) {
-    throw new ServiceError(
-      'Conta criada, mas houve um problema ao criar a empresa. Tente fazer login.',
-      companyError,
-    );
-  }
-
-  // 3. Criar perfil
-  const { error: profileError } = await supabase.from('profiles').insert({
-    id: userId,
-    company_id: company.id,
-    full_name: fullName,
+  // 2. Criar empresa + perfil (atômico, no servidor)
+  const { error: signupError } = await supabase.rpc('signup_owner', {
+    p_company_name: companyName,
+    p_full_name: fullName,
   });
 
-  console.log('[signUpOwner] insert profile → userId:', userId, 'company_id:', company.id, '| error:', profileError?.message, profileError?.details);
-
-  if (profileError) {
+  if (signupError) {
     throw new ServiceError(
-      'Conta criada, mas houve um problema ao salvar seu perfil. Entre em contato com o suporte.',
-      profileError,
+      'Conta criada, mas houve um problema ao criar a empresa. Tente fazer login.',
+      signupError,
     );
   }
 

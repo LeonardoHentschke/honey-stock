@@ -9,8 +9,6 @@ export interface CreateProductInput {
   description?: string | null;
   cost_price: number;
   sale_price: number;
-  stock_quantity?: number;
-  min_stock?: number;
 }
 
 export interface UpdateProductInput {
@@ -18,20 +16,11 @@ export interface UpdateProductInput {
   description?: string | null;
   cost_price?: number;
   sale_price?: number;
-  min_stock?: number;
   is_active?: boolean;
 }
 
 export interface ProductFilters {
   search?: string;
-  lowStockOnly?: boolean;
-}
-
-export interface LowStockProduct {
-  id: string;
-  name: string;
-  stock_quantity: number;
-  min_stock: number;
 }
 
 export const productService = {
@@ -50,13 +39,7 @@ export const productService = {
     const { data, error } = await query;
     if (error) throw new ServiceError('Erro ao buscar produtos.', error);
 
-    const rows = data ?? [];
-
-    if (filters?.lowStockOnly) {
-      return rows.filter((p) => p.stock_quantity <= p.min_stock);
-    }
-
-    return rows;
+    return data ?? [];
   },
 
   async get(id: string): Promise<Product> {
@@ -78,17 +61,6 @@ export const productService = {
       .eq('is_active', true)
       .order('name');
     if (error) throw new ServiceError('Erro ao buscar produtos.', error);
-    return data ?? [];
-  },
-
-  async lowStock(companyId: string): Promise<LowStockProduct[]> {
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name, stock_quantity, min_stock')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .filter('stock_quantity', 'lte', 'min_stock');
-    if (error) throw new ServiceError('Erro ao buscar estoque baixo.', error);
     return data ?? [];
   },
 

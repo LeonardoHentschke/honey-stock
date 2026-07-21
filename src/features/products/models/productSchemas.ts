@@ -5,8 +5,6 @@ export const createProductSchema = z.object({
   description: z.string().nullable().optional(),
   sale_price: z.number().positive('Preço de venda deve ser maior que zero.'),
   cost_price: z.number().min(0, 'Custo não pode ser negativo.'),
-  stock_quantity: z.number().min(0, 'Estoque não pode ser negativo.'),
-  min_stock: z.number().min(0, 'Estoque mínimo não pode ser negativo.'),
 });
 
 export type CreateProductValues = z.infer<typeof createProductSchema>;

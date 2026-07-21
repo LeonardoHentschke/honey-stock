@@ -16,12 +16,6 @@ export interface RawSaleItem {
   products: { name: string } | null;
 }
 
-export interface LowStockProduct {
-  stock_quantity: number;
-  min_stock: number;
-  product_name: string;
-}
-
 export const reportsService = {
   async getSalesInPeriod(
     companyId: string,
@@ -48,31 +42,5 @@ export const reportsService = {
       .in('sale_id', saleIds);
     if (error) throw new ServiceError('Erro ao buscar itens de venda.', error);
     return (data ?? []) as unknown as RawSaleItem[];
-  },
-
-  async getLowStockProducts(companyId: string, limit = 10): Promise<LowStockProduct[]> {
-    const { data, error } = await supabase
-      .from('products')
-      .select('name, stock_quantity, min_stock')
-      .eq('company_id', companyId)
-      .eq('is_active', true);
-    if (error) throw new ServiceError('Erro ao buscar estoque.', error);
-
-    type Row = { name: string; stock_quantity: number; min_stock: number };
-    const rows = (data ?? []) as unknown as Row[];
-
-    return rows
-      .filter((r) => r.stock_quantity <= r.min_stock)
-      .sort((a, b) => {
-        const ratioA = a.min_stock > 0 ? a.stock_quantity / a.min_stock : 0;
-        const ratioB = b.min_stock > 0 ? b.stock_quantity / b.min_stock : 0;
-        return ratioA - ratioB;
-      })
-      .slice(0, limit)
-      .map((r) => ({
-        stock_quantity: r.stock_quantity,
-        min_stock: r.min_stock,
-        product_name: r.name,
-      }));
   },
 };

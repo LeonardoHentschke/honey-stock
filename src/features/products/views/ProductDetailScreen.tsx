@@ -12,35 +12,25 @@ import {
 import {
   ArrowLeft,
   Pencil,
-  ArrowUpDown,
-  AlertTriangle,
-  TrendingUp,
-  TrendingDown,
-  SlidersHorizontal,
   ShoppingCart,
+  ChevronRight,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, type NavigationProp, type RouteProp } from '@react-navigation/native';
 
 import { useProductDetailViewModel } from '../viewmodels/useProductDetailViewModel';
 import { ProductFormSheet } from './components/ProductFormSheet';
-import { StockMovementSheet } from '@/features/inventory/views/components/StockMovementSheet';
 import { formatCurrency, formatDateTime, formatQuantity } from '@/shared/lib/format';
-import type { ProductsStackParamList } from '@/navigation/types';
+import type { AppTabsParamList, ProductsStackParamList } from '@/navigation/types';
 import type { MovementWithDetails } from '@/features/inventory/models/inventoryService';
 
 type Route = RouteProp<ProductsStackParamList, 'ProductDetail'>;
 
-const MOVEMENT_CONFIG = {
-  in:     { label: 'Entrada', color: '#2E7D32', bg: '#E8F5E9', Icon: TrendingUp },
-  out:    { label: 'Saída',   color: '#B3261E', bg: '#FFEBEE', Icon: TrendingDown },
-  adjust: { label: 'Ajuste',  color: '#1565C0', bg: '#E3F2FD', Icon: SlidersHorizontal },
-  sale:   { label: 'Venda',   color: '#9B5F0B', bg: '#FCEFC8', Icon: ShoppingCart },
-} as const;
+const SALE_MOVEMENT_CONFIG = { label: 'Venda', color: '#9B5F0B', bg: '#FCEFC8', Icon: ShoppingCart } as const;
 
 export function ProductDetailScreen() {
   const { top } = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<AppTabsParamList>>();
   const route = useRoute<Route>();
   const { productId } = route.params;
   const vm = useProductDetailViewModel(productId);
@@ -76,7 +66,6 @@ export function ProductDetailScreen() {
   }
 
   const { product, movements } = vm;
-  const isLowStock = product.stock_quantity <= product.min_stock && product.min_stock > 0;
 
   return (
     <View style={styles.root}>
@@ -120,31 +109,6 @@ export function ProductDetailScreen() {
           </View>
         ) : null}
 
-        {/* ── Estoque ──────────────────────────────────────── */}
-        <View style={[styles.card, isLowStock && styles.cardWarning]}>
-          <View style={styles.stockHeader}>
-            <Text style={styles.cardTitle}>Estoque atual</Text>
-            {isLowStock && (
-              <View style={styles.lowBadge}>
-                <AlertTriangle size={11} color="#C77700" />
-                <Text style={styles.lowBadgeText}>Baixo</Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.stockQty, isLowStock && styles.stockQtyLow]}>
-            {formatQuantity(product.stock_quantity, 'un')}
-          </Text>
-          {product.min_stock > 0 && (
-            <Text style={styles.stockMin}>
-              Mínimo: {formatQuantity(product.min_stock, 'un')}
-            </Text>
-          )}
-          <Pressable style={styles.movBtn} onPress={vm.openMovementSheet}>
-            <ArrowUpDown size={16} color="#9B5F0B" />
-            <Text style={styles.movBtnText}>Movimentar estoque</Text>
-          </Pressable>
-        </View>
-
         {/* ── Histórico de movimentações ───────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Movimentações recentes</Text>
@@ -155,7 +119,20 @@ export function ProductDetailScreen() {
           ) : (
             <View style={styles.movList}>
               {movements.map((m) => (
-                <MovementRow key={m.id} movement={m} />
+                <MovementRow
+                  key={m.id}
+                  movement={m}
+                  onPress={
+                    m.type === 'sale' && m.reference_type === 'sale' && m.reference_id
+                      ? () =>
+                          navigation.navigate('More', {
+                            screen: 'SaleDetail',
+                            params: { saleId: m.reference_id as string },
+                            initial: false,
+                          })
+                      : undefined
+                  }
+                />
               ))}
             </View>
           )}
@@ -179,16 +156,6 @@ export function ProductDetailScreen() {
         onSuccess={vm.onSheetSuccess}
         onClose={vm.closeEditSheet}
       />
-
-      <StockMovementSheet
-        visible={vm.showMovementSheet}
-        productId={product.id}
-        companyId={vm.companyId}
-        productLabel={product.name}
-        currentStock={product.stock_quantity}
-        onSuccess={vm.onSheetSuccess}
-        onClose={vm.closeMovementSheet}
-      />
     </View>
   );
 }
@@ -204,30 +171,35 @@ function PriceBlock({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MovementRow({ movement }: { movement: MovementWithDetails }) {
-  const type = movement.type as keyof typeof MOVEMENT_CONFIG;
-  const cfg = MOVEMENT_CONFIG[type] ?? MOVEMENT_CONFIG.adjust;
+function MovementRow({ movement, onPress }: { movement: MovementWithDetails; onPress?: () => void }) {
+  const cfg = SALE_MOVEMENT_CONFIG;
   const { Icon } = cfg;
-  const sign = type === 'in' ? '+' : type === 'adjust' ? '=' : '-';
 
   return (
-    <View style={styles.movRow}>
-      <View style={[styles.movIcon, { backgroundColor: cfg.bg }]}>
-        <Icon size={14} color={cfg.color} />
+    <Pressable
+      style={({ pressed }) => (pressed && onPress ? styles.movRowPressed : undefined)}
+      onPress={onPress}
+      disabled={!onPress}
+    >
+      <View style={styles.movRow}>
+        <View style={[styles.movIcon, { backgroundColor: cfg.bg }]}>
+          <Icon size={14} color={cfg.color} />
+        </View>
+        <View style={styles.movInfo}>
+          <Text style={styles.movLabel}>{cfg.label}</Text>
+          {movement.notes ? (
+            <Text style={styles.movNotes} numberOfLines={1}>{movement.notes}</Text>
+          ) : null}
+        </View>
+        <View style={styles.movRight}>
+          <Text style={[styles.movQty, { color: cfg.color }]}>
+            -{formatQuantity(movement.quantity, 'un')}
+          </Text>
+          <Text style={styles.movDate}>{formatDateTime(new Date(movement.created_at))}</Text>
+        </View>
+        {onPress ? <ChevronRight size={16} color="#A89E91" style={styles.movChevron} /> : null}
       </View>
-      <View style={styles.movInfo}>
-        <Text style={styles.movLabel}>{cfg.label}</Text>
-        {movement.notes ? (
-          <Text style={styles.movNotes} numberOfLines={1}>{movement.notes}</Text>
-        ) : null}
-      </View>
-      <View style={styles.movRight}>
-        <Text style={[styles.movQty, { color: cfg.color }]}>
-          {sign}{formatQuantity(movement.quantity, 'un')}
-        </Text>
-        <Text style={styles.movDate}>{formatDateTime(new Date(movement.created_at))}</Text>
-      </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -267,7 +239,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardWarning: { borderWidth: 1, borderColor: '#F5C859' },
   cardTitle: { fontSize: 13, fontWeight: '600', color: '#A89E91', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   descText: { fontSize: 14, color: '#3B342B', lineHeight: 20 },
@@ -276,25 +247,6 @@ const styles = StyleSheet.create({
   priceBlock: { gap: 3 },
   priceLabel: { fontSize: 11, color: '#A89E91' },
   priceValue: { fontSize: 17, fontWeight: '600', color: '#1F1B16' },
-
-  stockHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  stockQty: { fontSize: 32, lineHeight: 40, fontWeight: '700', color: '#1F1B16' },
-  stockQtyLow: { color: '#C77700' },
-  stockMin: { fontSize: 13, color: '#A89E91' },
-  lowBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF8E1', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  lowBadgeText: { fontSize: 12, fontWeight: '600', color: '#C77700' },
-
-  movBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#FCEFC8',
-    borderRadius: 10,
-    paddingVertical: 12,
-    marginTop: 4,
-  },
-  movBtnText: { fontSize: 14, fontWeight: '600', color: '#9B5F0B' },
 
   section: { gap: 10 },
   sectionTitle: { fontSize: 15, fontWeight: '600', color: '#3B342B' },
@@ -321,6 +273,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E7E2D9',
   },
+  movRowPressed: { opacity: 0.85 },
   movIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   movInfo: { flex: 1, gap: 2 },
   movLabel: { fontSize: 14, fontWeight: '600', color: '#1F1B16' },
@@ -328,6 +281,7 @@ const styles = StyleSheet.create({
   movRight: { alignItems: 'flex-end', gap: 2 },
   movQty: { fontSize: 14, fontWeight: '700' },
   movDate: { fontSize: 11, color: '#A89E91' },
+  movChevron: { marginLeft: 6 },
 
   deactivateBtn: {
     alignItems: 'center',

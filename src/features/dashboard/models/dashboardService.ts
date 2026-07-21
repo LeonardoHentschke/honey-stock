@@ -84,17 +84,6 @@ export const dashboardService = {
     return top ? top[0] : '-';
   },
 
-  async getLowStockCount(companyId: string): Promise<number> {
-    const { data, error } = await supabase
-      .from('products')
-      .select('stock_quantity, min_stock')
-      .eq('company_id', companyId)
-      .eq('is_active', true);
-    if (error) throw new ServiceError('Erro ao buscar estoque.', error);
-
-    return (data ?? []).filter((p) => p.stock_quantity <= p.min_stock).length;
-  },
-
   async getPendingRemindersCount(companyId: string): Promise<number> {
     const { count, error } = await supabase
       .from('reminders')
