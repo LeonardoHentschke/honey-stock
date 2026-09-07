@@ -4,8 +4,10 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { productService, type Product } from '@/features/products/models/productService';
 import { customerService, type Customer } from '@/features/customers/models/customerService';
 import { salesService, type PaymentMethod } from '../models/salesService';
+import { remindersService } from '@/features/reminders/models/remindersService';
 import { humanizeError } from '@/shared/lib/errors';
 import { currencyToNumber } from '@/shared/lib/mask';
+import { formatCurrency } from '@/shared/lib/format';
 import type { CartItem } from '../models/salesSchemas';
 
 /** full = pago integralmente · partial = pago em parte · later = a prazo (0) */
@@ -38,6 +40,55 @@ export function useNewSaleViewModel({ onSaleCreated }: UseNewSaleViewModelOption
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<Date | null>(null);
   const [schedulingError, setSchedulingError] = useState<string | null>(null);
+
+  // ─── Lembrete vinculado à venda agendada ───────────────────────────────────
+  const [withReminder, setWithReminder] = useState(true);
+  const [reminderRemindAt, setReminderRemindAt] = useState<Date | null>(null);
+  const [reminderTouched, setReminderTouched] = useState(false);
+  const [reminderRecipientIds, setReminderRecipientIds] = useState<string[]>([]);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const [reminderWarning, setReminderWarning] = useState<string | null>(null);
+
+  const membersQuery = useQuery({
+    queryKey: ['company-members', companyId],
+    queryFn: () => remindersService.getCompanyMembers(companyId),
+    enabled: !!companyId && isScheduled,
+    staleTime: 60_000,
+  });
+
+  // Eu mesmo entro como destinatário padrão assim que o perfil carrega.
+  useEffect(() => {
+    if (userId && !reminderRecipientIds.includes(userId)) {
+      setReminderRecipientIds((prev) => (prev.includes(userId) ? prev : [...prev, userId]));
+    }
+  }, [userId]);
+
+  // Sugere a data do lembrete igual à da entrega, até o usuário editar manualmente.
+  useEffect(() => {
+    if (isScheduled && withReminder && scheduledFor && !reminderTouched) {
+      setReminderRemindAt(scheduledFor);
+    }
+  }, [isScheduled, withReminder, scheduledFor, reminderTouched]);
+
+  // Ao desligar o agendamento, reseta o estado do lembrete pra próxima venda.
+  useEffect(() => {
+    if (!isScheduled) {
+      setReminderRemindAt(null);
+      setReminderTouched(false);
+      setReminderError(null);
+    }
+  }, [isScheduled]);
+
+  const handleReminderRemindAtChange = useCallback((date: Date) => {
+    setReminderRemindAt(date);
+    setReminderTouched(true);
+  }, []);
+
+  const toggleReminderRecipient = useCallback((uid: string) => {
+    setReminderRecipientIds((prev) =>
+      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
+    );
+  }, []);
 
   // ─── Busca de produtos ─────────────────────────────────────────────────────
   const [productQuery, setProductQuery] = useState('');
@@ -184,18 +235,40 @@ export function useNewSaleViewModel({ onSaleCreated }: UseNewSaleViewModelOption
     [cartItems, selectedCustomer, paymentMethod, discount, paidAmount]
   );
 
+  const reminderTitle = selectedCustomer
+    ? `Entregar para ${selectedCustomer.name}`
+    : 'Entregar pedido';
+  const reminderBody = `${cartItems.length} ${cartItems.length === 1 ? 'item' : 'itens'} · ${formatCurrency(total)}`;
+
   const mutation = useMutation({
-    mutationFn: () => {
-      if (isScheduled) {
-        return salesService.createScheduledSale(companyId, userId, saleInput, scheduledFor!);
+    mutationFn: async () => {
+      const sale = isScheduled
+        ? await salesService.createScheduledSale(companyId, userId, saleInput, scheduledFor!)
+        : await salesService.create(companyId, userId, saleInput);
+
+      let reminderCreationWarning: string | null = null;
+      if (isScheduled && withReminder && reminderRemindAt) {
+        try {
+          await remindersService.create(companyId, userId, {
+            title: reminderTitle,
+            body: reminderBody,
+            remindAt: reminderRemindAt,
+            recipientIds: reminderRecipientIds,
+            saleId: sale.id,
+          });
+        } catch {
+          reminderCreationWarning = 'Venda agendada, mas não foi possível criar o lembrete.';
+        }
       }
-      return salesService.create(companyId, userId, saleInput);
+
+      return { sale, reminderCreationWarning };
     },
-    onSuccess: (sale) => {
+    onSuccess: ({ sale, reminderCreationWarning }) => {
       queryClient.invalidateQueries({ queryKey: ['sales', companyId] });
       queryClient.invalidateQueries({ queryKey: ['products-active', companyId] });
       queryClient.invalidateQueries({ queryKey: ['products', companyId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['reminders', companyId] });
       // Reset
       setCartItems([]);
       setSelectedCustomer(null);
@@ -206,18 +279,37 @@ export function useNewSaleViewModel({ onSaleCreated }: UseNewSaleViewModelOption
       setIsScheduled(false);
       setScheduledFor(null);
       setSchedulingError(null);
+      setWithReminder(true);
+      setReminderRemindAt(null);
+      setReminderTouched(false);
+      setReminderRecipientIds(userId ? [userId] : []);
+      setReminderError(null);
+      setReminderWarning(reminderCreationWarning);
       onSaleCreated?.(sale.id);
     },
   });
 
   const submitSale = useCallback(() => {
     setSchedulingError(null);
-    if (isScheduled && (!scheduledFor || scheduledFor <= new Date())) {
-      setSchedulingError('A data/hora deve ser no futuro.');
-      return;
+    setReminderError(null);
+    if (isScheduled) {
+      if (!scheduledFor || scheduledFor <= new Date()) {
+        setSchedulingError('A data/hora deve ser no futuro.');
+        return;
+      }
+      if (withReminder) {
+        if (!reminderRemindAt) {
+          setReminderError('Escolha a data/hora do lembrete.');
+          return;
+        }
+        if (reminderRecipientIds.length === 0) {
+          setReminderError('Escolha ao menos um destinatário.');
+          return;
+        }
+      }
     }
     mutation.mutate();
-  }, [isScheduled, scheduledFor, mutation]);
+  }, [isScheduled, scheduledFor, withReminder, reminderRemindAt, reminderRecipientIds, mutation]);
 
   return {
     // Carrinho
@@ -259,6 +351,18 @@ export function useNewSaleViewModel({ onSaleCreated }: UseNewSaleViewModelOption
     scheduledFor,
     setScheduledFor,
     schedulingError,
+
+    // Lembrete
+    withReminder,
+    setWithReminder,
+    reminderRemindAt,
+    setReminderRemindAt: handleReminderRemindAtChange,
+    reminderRecipientIds,
+    toggleReminderRecipient,
+    reminderMembers: membersQuery.data ?? [],
+    isLoadingReminderMembers: membersQuery.isLoading,
+    reminderError,
+    reminderWarning,
 
     // Submit
     submitSale,

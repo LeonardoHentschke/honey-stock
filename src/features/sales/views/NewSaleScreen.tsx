@@ -10,7 +10,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { Plus, UserRound, ChevronRight, CalendarClock } from 'lucide-react-native';
+import {
+  UserRound,
+  ChevronRight,
+  CalendarClock,
+  ShoppingCart,
+  Plus,
+  CheckCircle2,
+  Circle,
+} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { AppTabsParamList } from '@/navigation/types';
@@ -35,6 +43,13 @@ const PAY_MODES = [
   { key: 'later', label: 'A prazo' },
 ] as const;
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
 export function NewSaleScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<AppTabsParamList>>();
@@ -52,9 +67,13 @@ export function NewSaleScreen() {
   useEffect(() => {
     if (vm.isSuccess) {
       setDiscountText('');
-      showToast({ type: 'success', title: 'Venda registrada' });
+      if (vm.reminderWarning) {
+        showToast({ type: 'error', title: 'Venda registrada', message: vm.reminderWarning });
+      } else {
+        showToast({ type: 'success', title: 'Venda registrada' });
+      }
     }
-  }, [vm.isSuccess, showToast]);
+  }, [vm.isSuccess, vm.reminderWarning, showToast]);
 
   function handleSubmit() {
     if (vm.cartItems.length === 0) {
@@ -63,8 +82,6 @@ export function NewSaleScreen() {
     }
     vm.submitSale();
   }
-
-
 
   function handleDiscountChange(text: string) {
     const masked = maskCurrency(text);
@@ -77,21 +94,22 @@ export function NewSaleScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Text style={styles.title}>Nova venda</Text>
-        {/* espaçador de 40dp: mantém o título na mesma posição vertical das
-            telas cujo header tem botão de 40dp */}
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Botão de adicionar produto */}
-      <Pressable
-        style={styles.addProductBtn}
-        android_ripple={{ color: 'rgba(155,95,11,0.12)' }}
-        onPress={() => setShowProductSheet(true)}
-      >
-        <Plus size={20} color="#9B5F0B" />
-        <Text style={styles.addProductText}>Adicionar produto</Text>
-      </Pressable>
-
+      {vm.cartItems.length === 0 ? (
+        <View style={styles.emptyCartWrap}>
+          <View style={styles.emptyCartIcon}>
+            <ShoppingCart size={32} color="#F5C859" />
+          </View>
+          <Text style={styles.emptyCartTitle}>Carrinho vazio</Text>
+          <Text style={styles.emptyCartText}>Adicione produtos para começar a venda.</Text>
+          <Pressable style={styles.emptyCartBtn} onPress={() => setShowProductSheet(true)}>
+            <Plus size={16} color="#9B5F0B" />
+            <Text style={styles.emptyCartBtnText}>Adicionar produto</Text>
+          </Pressable>
+        </View>
+      ) : (
       <KeyboardAwareScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -99,32 +117,76 @@ export function NewSaleScreen() {
         bottomOffset={24}
       >
         {/* Carrinho */}
-        <Text style={styles.sectionLabel}>
-          Carrinho{vm.cartItems.length > 0 ? ` (${vm.cartItems.length})` : ''}
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Carrinho ({vm.cartItems.length})</Text>
+          <Pressable
+            style={styles.addMoreBtn}
+            hitSlop={8}
+            onPress={() => setShowProductSheet(true)}
+          >
+            <Plus size={16} color="#C47C0A" />
+          </Pressable>
+        </View>
 
-        {vm.cartItems.length === 0 ? (
-          <View style={styles.emptyCart}>
-            <Text style={styles.emptyCartText}>Nenhum produto adicionado</Text>
-          </View>
-        ) : (
-          <View style={styles.cartList}>
-            {vm.cartItems.map((item) => (
-              <CartItemRow key={item.productId} item={item} onUpdateQty={vm.updateQty} />
-            ))}
-          </View>
-        )}
+        <View style={styles.cartList}>
+          {vm.cartItems.map((item) => (
+            <CartItemRow
+              key={item.productId}
+              item={item}
+              onUpdateQty={vm.updateQty}
+              resellerDiscountPercent={vm.selectedCustomer?.reseller_discount_percent}
+            />
+          ))}
+        </View>
 
         {/* Separador */}
         <View style={styles.separator} />
 
-        {/* Campos do pedido */}
-        <FormRow
-          label="Cliente"
-          value={vm.selectedCustomer?.name ?? 'Sem cliente (avulso)'}
-          icon={<UserRound size={16} color="#A89E91" />}
-          onPress={() => setShowCustomerSheet(true)}
-        />
+        {/* Cliente */}
+        <Pressable style={styles.customerRow} onPress={() => setShowCustomerSheet(true)}>
+          <Text style={styles.formLabel}>Cliente</Text>
+          {vm.selectedCustomer ? (
+            <View style={styles.customerValue}>
+              <View
+                style={[
+                  styles.avatar,
+                  vm.selectedCustomer.type === 'reseller' && styles.avatarReseller,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.avatarText,
+                    vm.selectedCustomer.type === 'reseller' && styles.avatarTextReseller,
+                  ]}
+                >
+                  {getInitials(vm.selectedCustomer.name)}
+                </Text>
+              </View>
+              <View style={styles.customerInfo}>
+                <Text style={styles.customerName} numberOfLines={1}>
+                  {vm.selectedCustomer.name}
+                </Text>
+                <Text
+                  style={[
+                    styles.customerType,
+                    vm.selectedCustomer.type === 'reseller' && styles.customerTypeReseller,
+                  ]}
+                >
+                  {vm.selectedCustomer.type === 'reseller'
+                    ? `Revenda${vm.selectedCustomer.reseller_discount_percent ? ` · ${vm.selectedCustomer.reseller_discount_percent}%` : ''}`
+                    : 'Cliente final'}
+                </Text>
+              </View>
+              <ChevronRight size={16} color="#A89E91" />
+            </View>
+          ) : (
+            <View style={styles.customerValue}>
+              <UserRound size={16} color="#A89E91" />
+              <Text style={styles.formValueText}>Sem cliente (avulso)</Text>
+              <ChevronRight size={16} color="#A89E91" />
+            </View>
+          )}
+        </Pressable>
 
         {/* Forma de pagamento — só 2 opções, escolha direta por chips */}
         <View style={styles.payCard}>
@@ -248,32 +310,112 @@ export function NewSaleScreen() {
           <Text style={styles.errorText}>{vm.schedulingError}</Text>
         ) : null}
 
+        {/* Lembrete vinculado à entrega */}
+        {vm.isScheduled ? (
+          <View style={styles.reminderBox}>
+            <View style={styles.reminderToggleRow}>
+              <Text style={styles.formLabel}>Criar lembrete?</Text>
+              <Switch
+                value={vm.withReminder}
+                onValueChange={vm.setWithReminder}
+                trackColor={{ false: '#E7E2D9', true: '#F9DE91' }}
+                thumbColor={vm.withReminder ? '#C47C0A' : '#A89E91'}
+              />
+            </View>
+
+            {vm.withReminder ? (
+              <>
+                <View style={styles.scheduleDateRow}>
+                  <View style={styles.scheduleDateField}>
+                    <Text style={styles.scheduleDateLabel}>Avisar em</Text>
+                    <DateTimeField
+                      mode="date"
+                      value={vm.reminderRemindAt}
+                      onChange={vm.setReminderRemindAt}
+                      minimumDate={new Date()}
+                      style={styles.scheduleDateInput}
+                    />
+                  </View>
+                  <View style={styles.scheduleDateField}>
+                    <Text style={styles.scheduleDateLabel}>Hora</Text>
+                    <DateTimeField
+                      mode="time"
+                      value={vm.reminderRemindAt}
+                      onChange={vm.setReminderRemindAt}
+                      style={styles.scheduleDateInput}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.reminderRecipients}>
+                  <Text style={styles.reminderRecipientsLabel}>Para</Text>
+                  {vm.isLoadingReminderMembers ? (
+                    <ActivityIndicator color="#C47C0A" />
+                  ) : (
+                    <View style={styles.reminderChipsRow}>
+                      {vm.reminderMembers.map((member) => {
+                        const selected = vm.reminderRecipientIds.includes(member.id);
+                        return (
+                          <Pressable
+                            key={member.id}
+                            style={[styles.reminderChip, selected && styles.reminderChipActive]}
+                            onPress={() => vm.toggleReminderRecipient(member.id)}
+                          >
+                            {selected ? (
+                              <CheckCircle2 size={14} color="#9B5F0B" />
+                            ) : (
+                              <Circle size={14} color="#A89E91" />
+                            )}
+                            <Text
+                              style={[
+                                styles.reminderChipText,
+                                selected && styles.reminderChipTextActive,
+                              ]}
+                            >
+                              {member.full_name}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              </>
+            ) : null}
+
+            {vm.reminderError ? <Text style={styles.errorText}>{vm.reminderError}</Text> : null}
+          </View>
+        ) : null}
+
         {/* Erro */}
         {vm.submitError ? (
           <Text style={styles.errorText}>{vm.submitError}</Text>
         ) : null}
       </KeyboardAwareScrollView>
+      )}
 
-      {/* Footer com total e botão */}
-      <View style={[styles.footer, { paddingBottom: bottom + 16 }]}>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{formatCurrency(vm.total)}</Text>
+      {/* Footer com total e botão — só aparece com itens no carrinho */}
+      {vm.cartItems.length > 0 ? (
+        <View style={[styles.footer, { paddingBottom: bottom + 16 }]}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>{formatCurrency(vm.total)}</Text>
+          </View>
+          <Pressable
+            style={[styles.submitBtn, vm.isSubmitting && styles.submitBtnDisabled]}
+            onPress={handleSubmit}
+            disabled={vm.isSubmitting}
+          >
+            {vm.isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.submitBtnText}>
+                {vm.isScheduled ? 'Agendar entrega' : 'Finalizar venda'}
+              </Text>
+            )}
+          </Pressable>
         </View>
-        <Pressable
-          style={[styles.submitBtn, vm.isSubmitting && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={vm.isSubmitting}
-        >
-          {vm.isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitBtnText}>
-              {vm.isScheduled ? 'Agendar entrega' : 'Finalizar venda'}
-            </Text>
-          )}
-        </Pressable>
-      </View>
+      ) : null}
 
       {/* Sheets */}
       <ProductSearchSheet
@@ -301,31 +443,6 @@ export function NewSaleScreen() {
   );
 }
 
-function FormRow({
-  label,
-  value,
-  icon,
-  onPress,
-}: {
-  label: string;
-  value: string;
-  icon?: React.ReactNode;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable style={styles.formRow} onPress={onPress}>
-      <Text style={styles.formLabel}>{label}</Text>
-      <View style={styles.formValue}>
-        {icon}
-        <Text style={styles.formValueText} numberOfLines={1}>
-          {value}
-        </Text>
-        <ChevronRight size={16} color="#A89E91" />
-      </View>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F5F1EA' },
 
@@ -339,37 +456,49 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 40, height: 40 },
   title: { fontSize: 24, lineHeight: 32, fontWeight: '700', color: '#1F1B16', flex: 1 },
 
-  addProductBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 24,
-    marginBottom: 12,
-    backgroundColor: '#FCEFC8',
-    borderRadius: 12,
-    height: 52,
-    gap: 8,
-    borderWidth: 1.5,
-    borderColor: '#F0D48A',
-    overflow: 'hidden',
-  },
-  addProductText: { fontSize: 15, fontWeight: '600', color: '#9B5F0B' },
-
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 16, gap: 10 },
 
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionLabel: { fontSize: 13, fontWeight: '600', color: '#6B6258', textTransform: 'uppercase', letterSpacing: 0.5 },
-
-  emptyCart: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 20,
+  addMoreBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FCEFC8',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E7E2D9',
-    borderStyle: 'dashed',
+    justifyContent: 'center',
   },
-  emptyCartText: { fontSize: 14, color: '#A89E91' },
+
+  emptyCartWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
+  },
+  emptyCartIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FCEFC8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyCartTitle: { fontSize: 16, fontWeight: '700', color: '#1F1B16' },
+  emptyCartText: { fontSize: 14, color: '#A89E91', textAlign: 'center' },
+  emptyCartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: '#FCEFC8',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  emptyCartBtnText: { fontSize: 14, fontWeight: '600', color: '#9B5F0B' },
 
   cartList: { gap: 10 },
 
@@ -390,7 +519,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   formLabel: { fontSize: 15, color: '#3B342B', fontWeight: '500' },
-  formValue: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' },
   formValueText: { fontSize: 15, color: '#6B6258', maxWidth: 200 },
   discountInput: {
     fontSize: 15,
@@ -400,6 +528,37 @@ const styles = StyleSheet.create({
     minWidth: 80,
     paddingVertical: 0,
   },
+
+  customerRow: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#1F1B16',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  customerValue: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'flex-end' },
+  customerInfo: { gap: 1, flexShrink: 1 },
+  customerName: { fontSize: 15, fontWeight: '600', color: '#1F1B16' },
+  customerType: { fontSize: 12, color: '#9B5F0B', fontWeight: '600' },
+  customerTypeReseller: { color: '#7A5A2A' },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FCEFC8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarReseller: { backgroundColor: '#F2E8D9' },
+  avatarText: { fontSize: 13, fontWeight: '700', color: '#9B5F0B' },
+  avatarTextReseller: { color: '#7A5A2A' },
 
   payCard: {
     backgroundColor: '#FFFFFF',
@@ -476,6 +635,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
+
+  reminderBox: {
+    backgroundColor: '#FEF9EC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FCEFC8',
+    padding: 14,
+    gap: 12,
+  },
+  reminderToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reminderRecipients: { gap: 8 },
+  reminderRecipientsLabel: { fontSize: 12, fontWeight: '600', color: '#6B6258', textTransform: 'uppercase', letterSpacing: 0.4 },
+  reminderChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  reminderChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7E2D9',
+  },
+  reminderChipActive: { backgroundColor: '#FCEFC8', borderColor: '#F9DE91' },
+  reminderChipText: { fontSize: 13, color: '#6B6258', fontWeight: '500' },
+  reminderChipTextActive: { color: '#9B5F0B', fontWeight: '600' },
 
   errorText: { fontSize: 14, color: '#B3261E', textAlign: 'center' },
 
